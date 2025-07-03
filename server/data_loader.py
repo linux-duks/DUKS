@@ -1,5 +1,5 @@
 import polars as pl
-
+import orjson
 
 def load_by_commits(window_date_size=None):
     df = pl.read_parquet("../data/by_commit.parquet")
@@ -20,7 +20,10 @@ def rolling_count_row_of_lists(
 
 
 def load_data(window_date_size="1d"):
-    df = pl.read_parquet("../data/by_date.parquet").lazy()
+    if "d" not in window_date_size:
+        window_date_size = window_date_size + "d"
+
+    df = pl.read_parquet("../data/by_date.parquet")
 
     if window_date_size is None:
         window_date_size = "1d"
@@ -97,7 +100,7 @@ def load_data(window_date_size="1d"):
         pl.col("committer_date").dt.strftime("%Y-%m-%d").alias("committer_date")
     )
 
-    return df.collect()
+    return df
 
 
 # TODO: there are missing tags
@@ -132,14 +135,29 @@ def load_tags():
     return df
 
 
+def generate_pre_calculated_frames():
+    windows = [1, 5, 14, 30, 60, 120, 365]
+    for window in windows:
+        data = load_data(f"{window}d")
+        with open(f"../data/cached_{window}d.json", "wb") as file:
+            file.write(orjson.dumps(data.to_dict(as_series=False)))
+
+
+def load_pre_calculated_frame(window_date_size):
+    try:
+        with open(f"../data/cached_{window_date_size}d.json", "rb") as f:
+            read_bytes = f.read()
+            decoded_data = orjson.loads(read_bytes)
+            return decoded_data
+    except IOError as e:
+        print(f"Error reading from file: {e}")
+    except orjson.JSONDecodeError as e:
+        print(f"Error decoding JSON: {e}")
+    # if loading fails, produce data now
+    return load_data(window_date_size=window_date_size).to_dict(as_series=False)
+
+
 # main used only to test locally, executing this script directly
 if __name__ == "__main__":
-    import orjson
 
-    print()
-    data = load_tags()
-    # data = load_data("14d")
-    print(data)
-    data.write_ndjson("demo.ndjson")
-    print(data.columns)
-    print(orjson.dumps(data.tail(10).to_dict(as_series=False)).decode())
+    generate_pre_calculated_frames()
