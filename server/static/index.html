@@ -7,25 +7,29 @@
 		<meta name="keywords" content="Linux, Kernel, Open Surce, Analytical, Dashboard">
 		<meta name="author" content="Rafael Passos <rafael@rcpassos.me>">
 		<meta name="author" content="Arthur Pilone Maia da Silva <arthurpilone@usp.br>">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
     <!-- <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script> -->
-		<!-- <script src="https://cdn.plot.ly/plotly-3.0.1.js" charset="utf-8"></script> -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-    <script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
-    <script src="static/script.js"></script>
+		<!-- <script src="https://cdn.plot.ly/plotly-3.1.0.js" charset="utf-8"></script> -->
+    <link rel="stylesheet" href="static/normalize.css">
     <link rel="stylesheet" href="static/style.css">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.plot.ly/plotly-3.1.0.min.js" charset="utf-8"></script>
+    <script src="static/script.js"></script>
 </head>
 <body>
-    <div id="app">
+    <div id="app" class="app">
         <header>
             <h1>🦆 DUKS - Dashboard for Unified Kernel Statistics</h1>
         </header>
-        <section class="flexRow">
-            <div class="plot-container">
+        <div class="cards">
+					
+        <div class="card">
                 <div class="loading-spinner" :class="{ active: isLoading }"></div>
-                <div id="plotDiv" style="width:100%;height:100%;"></div>
-            </div>
-            <div id="controls">
+								<div id="plotDiv" style="width:100%; height:100vh"></div>
+				</div>
+
+        <div class="card">
+            <div id="controls" class="controls">
 								<div class="tooltip"> Rollable Values
 									<span class="tooltiptext">Values uniquely counted in the Sliding Window Length</span>
 								</div>
@@ -176,7 +180,7 @@
                         <option value="LoC Net">LoC Net</option>
                         <option value="LoC Changes">LoC Changes</option>
                     </select>
-                    <p style="text-align: center;">by</p>
+                    <p style="text-align: center; margin: 4px"> by </p>
                     <select v-model="branchData.underRatio" @change="updateUnder">
                         <option value="Authors">Authors</option>
                         <option value="Committers">Committers</option>
@@ -200,7 +204,8 @@
                     </select>
                 </div>
             </div>
-        </section>
+					</div>
+				</div>
     </div>
 </body>
 </html>
