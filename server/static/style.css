@@ -32,7 +32,6 @@ header h1 {
 }
 
 
-
 /* Plot Container */
 #plotDiv {
     background-color: #ffffff;
@@ -46,19 +45,21 @@ header h1 {
     background-color: #ffffff;
     padding-top: 5px;
     padding-bottom: 5px;
-		margin-top: 2px;
-		margin-bottom: 2px;
+    margin-top: 2px;
+	  margin-bottom: 2px;
+	  margin-right: 8px;
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.08); /* Soft shadow for controls */
     flex-direction: column;
     gap: 10px; /* Space between control groups */
 	  overflow-y: scroll;
 	  overflow-x: hidden;
-		height: 100%;
+	  height: calc(100% - 35px);
 }
 
 #controls div {
     display: flex;
+    padding: 2px;
     align-items: center;
 }
 
@@ -197,7 +198,7 @@ header h1 {
 .card {
   box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
 	display: inline-block;
-	max-height: calc(100svh - 30px);
+	height: calc(100% - 30px);
   padding: 0;
 	overflow: hidden;
 }
