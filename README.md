@@ -1,7 +1,29 @@
 # 🦆 DUKS - Dashboard for Unified Kernel Statistics
 
-This is a work in progress.
+How is the Linux Kernel development going ? Duks is a [work in progress] data visualization tool to help with that.
+
 [duks.rcpassos.me](https://duks.rcpassos.me)
+
+## Development
+
+To run DUKS in development, it is recommended to use the `dev-compose.yaml` file.
+This starts the server with the Backend (that also serves the Frontend).
+
+```bash
+podman-compose -f dev-compose.yaml up
+```
+
+Obtain the sample data files in the archived [replication package](https://archive.softwareheritage.org/browse/origin/directory/?origin_url=https://github.com/linux-duks/DUKS-2025-replication-pkg).
+
+The file structure
+
+```
+├── data    -> where the data files should be stored
+├── nginx    -> configurations for nginx (for production)
+├── scripts   -> scripts used to generate the dataset
+└── server   -> backend source code
+    └── static -> static Frontend files
+```
 
 ## Running from zero
 
@@ -33,3 +55,12 @@ Must set the `GRAPH_GRPC_SERVER` and `INITIAL_NODE`, if non-default port or comm
 ### Running application
 
 Run either `podman-compose -f dev-compose.yaml up` for development or `podman-compose up` for production build
+
+## Research
+
+Papers related to this software:
+
+- [Streamlining Analyses on the Linux Kernel with DUKS](https://doi.org/10.1109/VISSOFT67405.2025.00025)
+- [DUKS: visualizações e análises unificadas para o Kernel Linux 🇧🇷](https://doi.org/10.5753/vem.2025.14637)
+
+PASSOS, Rafael; PILONE, Arthur; TADOKORO, David; MEIRELLES, Paulo
