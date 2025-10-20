@@ -1,211 +1,327 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" data-theme="light">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DUKS: Dashboard for Unified Kernel Statistics</title>
-		<meta name="description" content="Analytical Dashboard of the Linux Kernel development cycles and its contributors">
-		<meta name="keywords" content="Linux, Kernel, Open Surce, Analytical, Dashboard">
-		<meta name="author" content="Rafael Passos <rafael@rcpassos.me>">
-		<meta name="author" content="Arthur Pilone Maia da Silva <arthurpilone@usp.br>">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
-    <!-- <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script> -->
-		<!-- <script src="https://cdn.plot.ly/plotly-3.1.0.js" charset="utf-8"></script> -->
+    <meta name="description" content="Analytical Dashboard of the Linux Kernel development cycles and its contributors">
+    <meta name="keywords" content="Linux, Kernel, Open Source, Analytical, Dashboard">
+    <meta name="author" content="Rafael Passos <rafael@rcpassos.me>">
+    <meta name="author" content="Arthur Pilone Maia da Silva <arthurpilone@usp.br>">
+    
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.24/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>    
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-    <script src="static/script.js"></script>
-    <script src="https://cdn.plot.ly/plotly-3.1.0.min.js" charset="utf-8"></script>
-    <link rel="stylesheet" href="static/style.css">
-    <link rel="stylesheet" href="static/normalize.css">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- 
+        Overrides DaisyUI's default colors to use green tones
+        based on the project's favicon (green duck)
+    -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#16a34a',     // Main green (green-600) - used in buttons and highlights
+                        'primary-content': '#ffffff', // White text on green background
+                        'secondary': '#15803d',   // Darker green (green-700) - for variations
+                        'secondary-content': '#ffffff',
+                        'accent': '#22c55e',      // Lighter green (green-500) - for accent elements
+                        'accent-content': '#ffffff',
+                        'neutral': '#374151',     // Dark gray for neutral text
+                        'neutral-content': '#ffffff',
+                        'base-100': '#ffffff',    // Main white background
+                        'base-200': '#f9fafb',    // Very light gray for cards
+                        'base-300': '#e5e7eb',    // Light gray for borders
+                        'base-content': '#1f2937', // Dark text on light background
+                    }
+                }
+            }
+        }
+    </script>
 </head>
 <body>
-    <div id="app" class="app">
-        <header>
-            <h1>🦆 DUKS - Dashboard for Unified Kernel Statistics</h1>
-        </header>
-        <div class="cards">
-					
-        <div class="card">
-                <div class="loading-spinner" :class="{ active: isLoading }"></div>
-								<div id="plotDiv" style="width:100%; height:100vh"></div>
-				</div>
-
-        <div class="card">
-            <div id="controls" class="controls">
-								<div class="tooltip"> Rollable Values
-									<span class="tooltiptext">Values uniquely counted in the Sliding Window Length</span>
-								</div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Authors" @change="replotOnToggle" />
-                    <label class="tooltip"> Authors
-											<span class="tooltiptext">Unique authors</span>
-										</label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Committers" @change="replotOnToggle" />
-                    <label class="tooltip"> Committers
-											<span class="tooltiptext">Unique Committers</span>
-										</label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Reviewed Bys" @change="replotOnToggle" />
-                    <label class="tooltip"> Reviewed-by's
-											<span class="tooltiptext">Unique emails attributed as Reviewers</span>
-										</label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Tested Bys" @change="replotOnToggle" />
-                    <label class="tooltip"> Tested-by's 
-											<span class="tooltiptext">Unique emails attributed as Testers</span>
-										</label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Suggested Bys" @change="replotOnToggle" />
-                    <label class="tooltip"> Suggested-by's 
-											<span class="tooltiptext">Unique emails attributed as Suggesters</span>
-										</label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Reported Bys" @change="replotOnToggle" />
-                    <label class="tooltip"> Reported-by's 
-											<span class="tooltiptext">Unique emails attributed as Reporters</span>
-										</label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="ACK'd Bys" @change="replotOnToggle" />
-                    <label class="tooltip"> ACK'd-by's
-											<span class="tooltiptext">Unique emails giving ack's</span>
-										</label>
-                </div>
-                <br>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Authoring Maintainers" @change="replotOnToggle" />
-                    <label class="tooltip"> Authoring Maintainers 
-											<span class="tooltiptext">Authors present in the Maintainers file</span>
-										</label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Supporting Maintainers" @change="replotOnToggle" />
-                    <label class="tooltip"> Supporting Maintainers
-											<span class="tooltiptext">Participants present Maintainers file (everything but author/committer)</span>
-										</label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Committing Maintainers" @change="replotOnToggle" />
-                    <label class="tooltip"> Committing Maintainers
-											<span class="tooltiptext">Commiters present Maintainers file</span>
-										</label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Supporting Contributors" @change="replotOnToggle" />
-                    <label class="tooltip"> Supporting Contributors
-											<span class="tooltiptext">All contributors but author/committer</span>
-										</label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Total Contributors" @change="replotOnToggle" />
-                    <label class="tooltip"> Total Contributors
-											<span class="tooltiptext">All contributors</span>
-										</label>
-                </div>
-                <div>
-                    <label class="tooltip"> Sliding Window Length 
-											<span class="tooltiptext">Date window size considered when counting unique contributors</span>
-										</label>
-                    <select v-model="windowSize" @change="updateWindowLen">  
-                        <option value="1">1 Day</option>
-                        <option value="5">5 Days</option>
-                        <option value="14">2 Weeks</option>
-                        <option value="30">1 Month</option>
-                        <option value="60">2 Months</option>
-                        <option value="120">4 Months</option>
-                        <option value="365">1 Year</option>
-                    </select>
-                </div>
-                <br>
-								<div class="tooltip"> Absolute Values
-									<span class="tooltiptext">Values always shown as daily absolute values</span>
-								</div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Maintainers Listed" @change="replotOnToggle" />
-                    <label for="checkMaintainers_Listed"> Entries on MAINTEINERS file </label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Commits" @change="replotOnToggle" />
-                    <label for="checkCommits"> Commits </label>
-                </div>
-                <br>
-                <div>
-                    <input type="checkbox" v-model="branchData.rightDataPoints" value="LoC Added" @change="replotOnToggle" />
-                    <label for="checkLoC_Added"> LoC added </label> 
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.rightDataPoints" value="LoC Removed" @change="replotOnToggle" />
-                    <label for="checkLoC_Removed"> LoC removed </label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.rightDataPoints" value="LoC Changes" @change="replotOnToggle" />
-                    <label for="checkLoC_Changes"> LoC changed </label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.rightDataPoints" value="LoC Net" @change="replotOnToggle" />
-                    <label for="checkLoC_Net"> Net LoC flow </label>
-                </div>
-                <br>
-                <div>
-                    <input type="checkbox" v-model="branchData.showTags" @change="replotOnToggle" />
-                    <label for="checkTags"> Show Release Tags </label>
-                </div>
-                <br>
-                <div>
-                    <input type="checkbox" v-model="branchData.showRatio" @change="toggleCustomRatio" />
-                    <label for="checkCustom"> Plot Custom Ratio</label>
-                </div>
-                <div v-show="branchData.showRatio">
-                    <select v-model="branchData.overRatio" @change="updateOver">  
-                        <option value="Authors">Authors</option>
-                        <option value="Committers">Committers</option>
-                        <option value="Reviewed Bys">Reviewed Bys</option>
-                        <option value="Tested Bys">Tested Bys</option>
-                        <option value="Suggested Bys">Suggested Bys</option>
-                        <option value="Reported Bys">Reported Bys</option>
-                        <option value="Tested Bys">Tested Bys</option>
-                        <option value="ACK'd Bys">ACK'd Bys</option>
-                        <option value="Authoring Maintainers">Authoring Maintainers</option>
-                        <option value="Supporting Maintainers">Supporting Maintainers</option>
-                        <option value="Committing Maintainers">Committing Maintainers</option>
-                        <option value="Total Contributors">Total Contributors</option>
-                        <option value="Maintainers Listed">Maintainers Listed</option>
-                        <option value="Commits">Commits</option>
-                        <option value="LoC Added">LoC Added</option>
-                        <option value="LoC Removed">LoC Removed</option>
-                        <option value="LoC Net">LoC Net</option>
-                        <option value="LoC Changes">LoC Changes</option>
-                    </select>
-                    <p style="text-align: center; margin: 4px"> by </p>
-                    <select v-model="branchData.underRatio" @change="updateUnder">
-                        <option value="Authors">Authors</option>
-                        <option value="Committers">Committers</option>
-                        <option value="Reviewed Bys">Reviewed Bys</option>
-                        <option value="Tested Bys">Tested Bys</option>
-                        <option value="Suggested Bys">Suggested Bys</option>
-                        <option value="Reported Bys">Reported Bys</option>
-                        <option value="Tested Bys">Tested Bys</option>
-                        <option value="ACK'd Bys">ACK'd Bys</option>
-                        <option value="Authoring Maintainers">Authoring Maintainers</option>
-                        <option value="Supporting Maintainers">Supporting Maintainers</option>
-                        <option value="Committing Maintainers">Committing Maintainers</option>
-                        <option value="Maintainers Listed">Maintainers Listed</option>
-                        <option value="Total Contributors">Total Contributors</option>
-                        <option value="Maintainers Listed">Maintainers Listed</option>
-                        <option value="Commits">Commits</option>
-                        <option value="LoC Added">LoC Added</option>
-                        <option value="LoC Removed">LoC Removed</option>
-                        <option value="LoC Net">LoC Net</option>
-                        <option value="LoC Changes">LoC Changes</option>
-                    </select>
+    <div id="app">
+        <div class="navbar bg-white shadow-lg border-b border-green-100">
+            <div class="navbar-start">
+                <div class="text-xl font-bold text-green-600">
+                    🦆 DUKS
                 </div>
             </div>
-					</div>
-				</div>
+            <div class="navbar-center">
+                <div class="text-lg hidden sm:block text-gray-700">
+                    Dashboard for Unified Kernel Statistics
+                </div>
+            </div>
+            <div class="navbar-end">
+                <!-- Responsive dropdown menu -->
+                <div class="dropdown dropdown-end">
+                    <div tabindex="0" role="button" class="btn btn-ghost text-gray-700 hover:bg-green-50">
+                        <i class="fas fa-bars"></i>
+                    </div>
+                    <!-- MENU: Styled navigation list -->
+                    <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-white rounded-box w-52 text-gray-700 border border-green-100">
+                        <li><a href="#about" class="hover:bg-green-50">About</a></li>
+                        <li><a href="#research" class="hover:bg-green-50">Research</a></li>
+                        <li><a href="#dashboards" class="hover:bg-green-50">Dashboards</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 
+            HERO SECTION: Highlighted main section
+        -->
+        <div class="hero min-h-screen bg-gradient-to-br from-green-50 to-white">
+            <div class="hero-content text-center">
+                <div class="max-w-4xl">
+                    <div class="text-6xl mb-6">🦆</div>
+                    <h1 class="text-5xl font-bold mb-6 text-gray-800">DUKS</h1>
+                    <h2 class="text-2xl font-semibold mb-8 text-green-600">
+                        Dashboard for Unified Kernel Statistics
+                    </h2>
+                    <p class="text-lg mb-8 max-w-2xl mx-auto text-gray-600">
+                        An analytical platform providing insights into Linux Kernel development cycles, 
+                        contributor patterns, and collaborative dynamics within one of the world's 
+                        largest open-source projects.
+                    </p>
+                    <!-- BUTTONS: Main call-to-action buttons -->
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <a href="/dashboard" class="btn bg-green-600 hover:bg-green-700 text-white border-none btn-lg">
+                            <i class="fas fa-chart-line mr-2"></i>
+                            Explore Dashboard
+                        </a>
+                        <!-- Outline button with custom colors -->
+                        <a href="#about" class="btn btn-outline border-green-600 text-green-600 hover:bg-green-600 hover:text-white btn-lg">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Learn More
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 
+            ABOUT SECTION: Introduction to features
+        -->
+        <section id="about" class="py-16 bg-white">
+            <div class="container mx-auto px-4">
+                <div class="text-center mb-12">
+                    <h2 class="text-4xl font-bold mb-4 text-gray-800">About DUKS</h2>
+                    <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+                        DUKS provides comprehensive analytics and visualizations of the Linux Kernel 
+                        development process, helping researchers and developers understand collaboration 
+                        patterns, contribution trends, and project dynamics.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- CARDS: Card components to present features -->
+
+                    <!-- Card 1: Contributor Analysis -->
+                    <div class="card bg-green-50 shadow-xl border border-green-100">
+                        <div class="card-body text-center">
+                            <div class="text-4xl text-green-600 mb-4">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <h3 class="card-title justify-center text-gray-800">Contributor Analysis</h3>
+                            <p class="text-gray-600">Track unique contributors, maintainers, reviewers, and their collaboration patterns over time.</p>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Code Metrics -->
+                    <div class="card bg-green-50 shadow-xl border border-green-100">
+                        <div class="card-body text-center">
+                            <div class="text-4xl text-green-700 mb-4">
+                                <i class="fas fa-code"></i>
+                            </div>
+                            <h3 class="card-title justify-center text-gray-800">Code Metrics</h3>
+                            <p class="text-gray-600">Analyze lines of code changes, commit patterns, and development velocity across kernel versions.</p>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Interactive Visualizations -->
+                    <div class="card bg-green-50 shadow-xl border border-green-100">
+                        <div class="card-body text-center">
+                            <div class="text-4xl text-green-500 mb-4">
+                                <i class="fas fa-chart-bar"></i>
+                            </div>
+                            <h3 class="card-title justify-center text-gray-800">Interactive Visualizations</h3>
+                            <p class="text-gray-600">Explore data through customizable charts with multiple time windows and filtering options.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 
+            RESEARCH SECTION: Academic information and publications
+        -->
+        <section id="research" class="py-16 bg-gray-50">
+            <div class="container mx-auto px-4">
+                <div class="text-center mb-12">
+                    <h2 class="text-4xl font-bold mb-4 text-gray-800">Research & Publications</h2>
+                    <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+                        DUKS is part of ongoing research into open-source collaboration patterns and 
+                        software engineering practices in large-scale projects.
+                    </p>
+                </div>
+
+                <div class="flex flex-col lg:flex-row gap-8 items-center">
+                    <!-- Publications Card -->
+                    <div class="lg:w-1/2">
+                        <div class="card bg-white shadow-xl border border-green-100">
+                            <div class="card-body">
+                                <h3 class="card-title text-2xl mb-4 text-gray-800">
+                                    <i class="fas fa-file-alt text-green-600 mr-2"></i>
+                                    Related Publications
+                                </h3>
+                                <div class="space-y-4">
+                                    <div class="alert bg-green-50 border-green-200 text-green-800">
+                                        <i class="fas fa-info-circle"></i>
+                                        <span>Research papers and publications will be linked here as they become available.</span>
+                                    </div>
+                                    <div class="flex flex-col gap-2">
+                                        <a href="https://doi.org/10.1109/VISSOFT67405.2025.00025" target="_blank" rel="noopener noreferrer"
+                                            class="btn btn-outline border-green-600 text-green-600 hover:bg-green-600 hover:text-white">
+                                             <i class="fas fa-external-link-alt mr-2"></i>
+                                             2025 - Streamlining Analyses on the Linux Kernel with DUKS 13th IEEE VISSOFT
+                                        </a>
+
+                                        <a href="https://doi.org/10.5753/vem.2025.14637" target="_blank" rel="noopener noreferrer"
+                                            class="btn btn-outline border-green-600 text-green-600 hover:bg-green-600 hover:text-white">
+                                             <i class="fas fa-external-link-alt mr-2"></i>
+                                             2025 - DUKS: visualizações e análises unificadas para o Kernel Linux XIII VEM (CBSoft)
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Academic Context Card -->
+                    <div class="lg:w-1/2">
+                        <div class="card bg-white shadow-xl border border-green-100">
+                            <div class="card-body">
+                                <h3 class="card-title text-2xl mb-4 text-gray-800">
+                                    <i class="fas fa-graduation-cap text-green-700 mr-2"></i>
+                                    Academic Context
+                                </h3>
+                                <p class="mb-4 text-gray-600">
+                                    This project is developed as part of research initiatives aimed at understanding 
+                                    collaborative software development patterns in open-source ecosystems.
+                                </p>
+                                <div class="stats stats-vertical lg:stats-horizontal bg-green-50 border border-green-100">
+                                    <div class="stat">
+                                        <div class="stat-title text-gray-600">Data Points</div>
+                                        <div class="stat-value text-green-600">20+ Years</div>
+                                        <div class="stat-desc text-gray-500">Kernel History</div>
+                                    </div>
+                                    <div class="stat">
+                                        <div class="stat-title text-gray-600">Contributors</div>
+                                        <div class="stat-value text-green-700">10K+</div>
+                                        <div class="stat-desc text-gray-500">Tracked</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 
+            DASHBOARDS SECTION: Centered cards for dashboard access
+        -->
+        <section id="dashboards" class="py-16 bg-white">
+            <div class="container mx-auto px-4">
+                <div class="text-center mb-12">
+                    <h2 class="text-4xl font-bold mb-4 text-gray-800">Available Dashboard</h2>
+                    <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+                        Explore different aspects of Linux Kernel development through our interactive dashboard.
+                    </p>
+                </div>
+                <div class="flex flex-col items-center gap-8">
+                    <!-- MAIN CARD: Available dashboard -->
+                    <div class="card bg-gradient-to-br from-green-50 to-white shadow-xl border-2 border-green-200 w-full max-w-2xl">
+                        <div class="card-body">
+                            <div class="flex items-center gap-4 mb-4">
+                                <div class="text-4xl">📊</div>
+                                <h3 class="card-title text-2xl text-gray-800">Kernel Statistics Dashboard</h3>
+                            </div>
+                            <p class="mb-6 text-gray-600">
+                                Interactive visualization of contributor patterns, code changes, and development 
+                                metrics across different time windows and kernel versions.
+                            </p>
+                            <div class="flex flex-wrap gap-2 mb-6">
+                                <div class="badge bg-green-600 text-white border-none">Contributors</div>
+                                <div class="badge bg-green-700 text-white border-none">Code Changes</div>
+                                <div class="badge bg-green-500 text-white border-none">Time Series</div>
+                                <div class="badge bg-green-800 text-white border-none">Interactive</div>
+                            </div>
+                            <div class="card-actions justify-end">
+                                <a href="/dashboard" class="btn bg-green-600 hover:bg-green-700 text-white border-none">
+                                    <i class="fas fa-external-link-alt mr-2"></i>
+                                    Open Dashboard
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <footer class="footer footer-center p-10 bg-green-600 text-white">
+            <aside>
+                <div class="text-4xl mb-4">🦆</div>
+                <p class="font-bold text-lg">
+                    DUKS - Dashboard for Unified Kernel Statistics
+                </p>
+                <p>
+                    Analyzing Linux Kernel development patterns and collaboration dynamics
+                </p>
+                <!-- Author information -->
+                <div class="flex gap-4 mt-4">
+                    <div class="text-sm">
+                        <strong>Authors:</strong><br>
+                        Rafael Passos<br>
+                        Arthur Pilone Maia da Silva
+                    </div>
+                </div>
+            </aside>
+        </footer>
     </div>
+
+    <!-- 
+        JAVASCRIPT: Vue.js 3 for interactivity
+        Implements smooth scrolling for anchor links
+    -->
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    // Reactive data can be added here as needed
+                }
+            },
+            mounted() {
+                document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                    anchor.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        const target = document.querySelector(this.getAttribute('href'));
+                        if (target) {
+                            // Smooth scroll to the target element
+                            target.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'start'
+                            });
+                        }
+                    });
+                });
+            }
+        }).mount('#app'); // Mounts the Vue app on the element with id="app"
+    </script>
 </body>
 </html>
