@@ -169,31 +169,47 @@
                     </p>
                 </div>
 
-                <div class="flex flex-col lg:flex-row gap-8 items-center">
-                    <!-- Publications Card -->
-                    <div class="lg:w-1/2">
-                        <div class="card bg-white shadow-xl border border-green-100">
+                <!-- 
+                    IMPROVED RESPONSIVE LAYOUT:
+                    - Stack vertically on mobile/tablet
+                    - Side by side only on large screens
+                    - Better spacing and max-width controls
+                -->
+                <div class="flex flex-col xl:flex-row gap-8 items-stretch max-w-7xl mx-auto">
+                    <!-- Publications Card - Full width on mobile, half on desktop -->
+                    <div class="w-full xl:w-1/2">
+                        <div class="card bg-white shadow-xl border border-green-100 h-full">
                             <div class="card-body">
-                                <h3 class="card-title text-2xl mb-4 text-gray-800">
+                                <h3 class="card-title text-xl lg:text-2xl mb-4 text-gray-800">
                                     <i class="fas fa-file-alt text-green-600 mr-2"></i>
                                     Related Publications
                                 </h3>
                                 <div class="space-y-4">
-                                    <div class="alert bg-green-50 border-green-200 text-green-800">
+                                    <div class="alert bg-green-50 border-green-200 text-green-800 text-sm">
                                         <i class="fas fa-info-circle"></i>
                                         <span>Research papers and publications will be linked here as they become available.</span>
                                     </div>
-                                    <div class="flex flex-col gap-2">
-                                        <a href="https://doi.org/10.1109/VISSOFT67405.2025.00025" target="_blank" rel="noopener noreferrer"
-                                            class="btn btn-outline border-green-600 text-green-600 hover:bg-green-600 hover:text-white">
-                                             <i class="fas fa-external-link-alt mr-2"></i>
-                                             2025 - Streamlining Analyses on the Linux Kernel with DUKS 13th IEEE VISSOFT
+                                    <div class="flex flex-col gap-3">
+                                        <a href="https://doi.org/10.1109/VISSOFT67405.2025.00025" 
+                                           target="_blank" 
+                                           rel="noopener noreferrer"
+                                           class="btn btn-outline border-green-600 text-green-600 hover:bg-green-600 hover:text-white btn-sm lg:btn-md text-left justify-start h-auto min-h-12 whitespace-normal">
+                                            <i class="fas fa-external-link-alt mr-2 flex-shrink-0"></i>
+                                            <span class="text-xs lg:text-sm leading-tight">
+                                                <strong>2025</strong> - Streamlining Analyses on the Linux Kernel with DUKS<br>
+                                                <em class="text-green-700">13th IEEE VISSOFT</em>
+                                            </span>
                                         </a>
 
-                                        <a href="https://doi.org/10.5753/vem.2025.14637" target="_blank" rel="noopener noreferrer"
-                                            class="btn btn-outline border-green-600 text-green-600 hover:bg-green-600 hover:text-white">
-                                             <i class="fas fa-external-link-alt mr-2"></i>
-                                             2025 - DUKS: visualizações e análises unificadas para o Kernel Linux XIII VEM (CBSoft)
+                                        <a href="https://doi.org/10.5753/vem.2025.14637" 
+                                           target="_blank" 
+                                           rel="noopener noreferrer"
+                                           class="btn btn-outline border-green-600 text-green-600 hover:bg-green-600 hover:text-white btn-sm lg:btn-md text-left justify-start h-auto min-h-12 whitespace-normal">
+                                            <i class="fas fa-external-link-alt mr-2 flex-shrink-0"></i>
+                                            <span class="text-xs lg:text-sm leading-tight">
+                                                <strong>2025</strong> - DUKS: visualizações e análises unificadas para o Kernel Linux<br>
+                                                <em class="text-green-700">XIII VEM (CBSoft)</em>
+                                            </span>
                                         </a>
                                     </div>
                                 </div>
@@ -201,28 +217,34 @@
                         </div>
                     </div>
 
-                    <!-- Academic Context Card -->
-                    <div class="lg:w-1/2">
-                        <div class="card bg-white shadow-xl border border-green-100">
+                    <!-- Academic Context Card - Full width on mobile, half on desktop -->
+                    <div class="w-full xl:w-1/2">
+                        <div class="card bg-white shadow-xl border border-green-100 h-full">
                             <div class="card-body">
-                                <h3 class="card-title text-2xl mb-4 text-gray-800">
+                                <h3 class="card-title text-xl lg:text-2xl mb-4 text-gray-800">
                                     <i class="fas fa-graduation-cap text-green-700 mr-2"></i>
                                     Academic Context
                                 </h3>
-                                <p class="mb-4 text-gray-600">
+                                <p class="mb-6 text-gray-600 text-sm lg:text-base">
                                     This project is developed as part of research initiatives aimed at understanding 
                                     collaborative software development patterns in open-source ecosystems.
                                 </p>
-                                <div class="stats stats-vertical lg:stats-horizontal bg-green-50 border border-green-100">
-                                    <div class="stat">
-                                        <div class="stat-title text-gray-600">Data Points</div>
-                                        <div class="stat-value text-green-600">20+ Years</div>
-                                        <div class="stat-desc text-gray-500">Kernel History</div>
+                                <!-- 
+                                    RESPONSIVE STATS:
+                                    - Always vertical on mobile for better readability
+                                    - Horizontal only on larger screens
+                                    - Better text sizing
+                                -->
+                                <div class="stats stats-vertical lg:stats-horizontal bg-green-50 border border-green-100 w-full">
+                                    <div class="stat place-items-center lg:place-items-start">
+                                        <div class="stat-title text-gray-600 text-xs lg:text-sm">Data Points</div>
+                                        <div class="stat-value text-green-600 text-xl lg:text-3xl">20+ Years</div>
+                                        <div class="stat-desc text-gray-500 text-xs lg:text-sm">Kernel History</div>
                                     </div>
-                                    <div class="stat">
-                                        <div class="stat-title text-gray-600">Contributors</div>
-                                        <div class="stat-value text-green-700">10K+</div>
-                                        <div class="stat-desc text-gray-500">Tracked</div>
+                                    <div class="stat place-items-center lg:place-items-start">
+                                        <div class="stat-title text-gray-600 text-xs lg:text-sm">Contributors</div>
+                                        <div class="stat-value text-green-700 text-xl lg:text-3xl">10K+</div>
+                                        <div class="stat-desc text-gray-500 text-xs lg:text-sm">Tracked</div>
                                     </div>
                                 </div>
                             </div>
