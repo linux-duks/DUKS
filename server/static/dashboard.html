@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>DUKS: Dashboard for Unified Kernel Statistics</title>
+		<meta name="description" content="Analytical Dashboard of the Linux Kernel development cycles and its contributors">
+		<meta name="keywords" content="Linux, Kernel, Open Surce, Analytical, Dashboard">
+		<meta name="author" content="Rafael Passos <rafael@rcpassos.me>">
+		<meta name="author" content="Arthur Pilone Maia da Silva <arthurpilone@usp.br>">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
+    <!-- <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script> -->
+		<!-- <script src="https://cdn.plot.ly/plotly-3.1.0.js" charset="utf-8"></script> -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="static/script.js"></script>
+    <script src="https://cdn.plot.ly/plotly-3.1.0.min.js" charset="utf-8"></script>
+    <link rel="stylesheet" href="static/style.css">
+    <link rel="stylesheet" href="static/normalize.css">
+</head>
+<body>
+    <div id="app" class="app">
+        <header>
+            <h1>🦆 DUKS - Dashboard for Unified Kernel Statistics</h1>
+        </header>
+        <div class="cards">
+					
+        <div class="card">
+                <div class="loading-spinner" :class="{ active: isLoading }"></div>
+								<div id="plotDiv" style="width:100%; height:100vh"></div>
+				</div>
+
+        <div class="card">
+            <div id="controls" class="controls">
+								<div class="tooltip"> Rollable Values
+									<span class="tooltiptext">Values uniquely counted in the Sliding Window Length</span>
+								</div>
+                <div>
+                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Authors" @change="replotOnToggle" />
+                    <label class="tooltip"> Authors
+											<span class="tooltiptext">Unique authors</span>
+										</label>
+                </div>
+                <div>
+                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Committers" @change="replotOnToggle" />
+                    <label class="tooltip"> Committers
+											<span class="tooltiptext">Unique Committers</span>
+										</label>
+                </div>
+                <div>
+                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Reviewed Bys" @change="replotOnToggle" />
+                    <label class="tooltip"> Reviewed-by's
+											<span class="tooltiptext">Unique emails attributed as Reviewers</span>
+										</label>
+                </div>
+                <div>
+                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Tested Bys" @change="replotOnToggle" />
+                    <label class="tooltip"> Tested-by's 
+											<span class="tooltiptext">Unique emails attributed as Testers</span>
+										</label>
+                </div>
+                <div>
+                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Suggested Bys" @change="replotOnToggle" />
+                    <label class="tooltip"> Suggested-by's 
+											<span class="tooltiptext">Unique emails attributed as Suggesters</span>
+										</label>
+                </div>
+                <div>
+                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Reported Bys" @change="replotOnToggle" />
+                    <label class="tooltip"> Reported-by's 
+											<span class="tooltiptext">Unique emails attributed as Reporters</span>
+										</label>
+                </div>
+                <div>
+                    <input type="checkbox" v-model="branchData.leftDataPoints" value="ACK'd Bys" @change="replotOnToggle" />
+                    <label class="tooltip"> ACK'd-by's
+											<span class="tooltiptext">Unique emails giving ack's</span>
+										</label>
+                </div>
+                <br>
+                <div>
+                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Authoring Maintainers" @change="replotOnToggle" />
+                    <label class="tooltip"> Authoring Maintainers 
+											<span class="tooltiptext">Authors present in the Maintainers file</span>
+										</label>
+                </div>
+                <div>
+                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Supporting Maintainers" @change="replotOnToggle" />
+                    <label class="tooltip"> Supporting Maintainers
+											<span class="tooltiptext">Participants present Maintainers file (everything but author/committer)</span>
+										</label>
+                </div>
+                <div>
+                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Committing Maintainers" @change="replotOnToggle" />
+                    <label class="tooltip"> Committing Maintainers
+											<span class="tooltiptext">Commiters present Maintainers file</span>
+										</label>
+                </div>
+                <div>
+                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Supporting Contributors" @change="replotOnToggle" />
+                    <label class="tooltip"> Supporting Contributors
+											<span class="tooltiptext">All contributors but author/committer</span>
+										</label>
+                </div>
+                <div>
+                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Total Contributors" @change="replotOnToggle" />
+                    <label class="tooltip"> Total Contributors
+											<span class="tooltiptext">All contributors</span>
+										</label>
+                </div>
+                <div>
+                    <label class="tooltip"> Sliding Window Length 
+											<span class="tooltiptext">Date window size considered when counting unique contributors</span>
+										</label>
+                    <select v-model="windowSize" @change="updateWindowLen">  
+                        <option value="1">1 Day</option>
+                        <option value="5">5 Days</option>
+                        <option value="14">2 Weeks</option>
+                        <option value="30">1 Month</option>
+                        <option value="60">2 Months</option>
+                        <option value="120">4 Months</option>
+                        <option value="365">1 Year</option>
+                    </select>
+                </div>
+                <br>
+								<div class="tooltip"> Absolute Values
+									<span class="tooltiptext">Values always shown as daily absolute values</span>
+								</div>
+                <div>
+                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Maintainers Listed" @change="replotOnToggle" />
+                    <label for="checkMaintainers_Listed"> Entries on MAINTEINERS file </label>
+                </div>
+                <div>
+                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Commits" @change="replotOnToggle" />
+                    <label for="checkCommits"> Commits </label>
+                </div>
+                <br>
+                <div>
+                    <input type="checkbox" v-model="branchData.rightDataPoints" value="LoC Added" @change="replotOnToggle" />
+                    <label for="checkLoC_Added"> LoC added </label> 
+                </div>
+                <div>
+                    <input type="checkbox" v-model="branchData.rightDataPoints" value="LoC Removed" @change="replotOnToggle" />
+                    <label for="checkLoC_Removed"> LoC removed </label>
+                </div>
+                <div>
+                    <input type="checkbox" v-model="branchData.rightDataPoints" value="LoC Changes" @change="replotOnToggle" />
+                    <label for="checkLoC_Changes"> LoC changed </label>
+                </div>
+                <div>
+                    <input type="checkbox" v-model="branchData.rightDataPoints" value="LoC Net" @change="replotOnToggle" />
+                    <label for="checkLoC_Net"> Net LoC flow </label>
+                </div>
+                <br>
+                <div>
+                    <input type="checkbox" v-model="branchData.showTags" @change="replotOnToggle" />
+                    <label for="checkTags"> Show Release Tags </label>
+                </div>
+                <br>
+                <div>
+                    <input type="checkbox" v-model="branchData.showRatio" @change="toggleCustomRatio" />
+                    <label for="checkCustom"> Plot Custom Ratio</label>
+                </div>
+                <div v-show="branchData.showRatio">
+                    <select v-model="branchData.overRatio" @change="updateOver">  
+                        <option value="Authors">Authors</option>
+                        <option value="Committers">Committers</option>
+                        <option value="Reviewed Bys">Reviewed Bys</option>
+                        <option value="Tested Bys">Tested Bys</option>
+                        <option value="Suggested Bys">Suggested Bys</option>
+                        <option value="Reported Bys">Reported Bys</option>
+                        <option value="Tested Bys">Tested Bys</option>
+                        <option value="ACK'd Bys">ACK'd Bys</option>
+                        <option value="Authoring Maintainers">Authoring Maintainers</option>
+                        <option value="Supporting Maintainers">Supporting Maintainers</option>
+                        <option value="Committing Maintainers">Committing Maintainers</option>
+                        <option value="Total Contributors">Total Contributors</option>
+                        <option value="Maintainers Listed">Maintainers Listed</option>
+                        <option value="Commits">Commits</option>
+                        <option value="LoC Added">LoC Added</option>
+                        <option value="LoC Removed">LoC Removed</option>
+                        <option value="LoC Net">LoC Net</option>
+                        <option value="LoC Changes">LoC Changes</option>
+                    </select>
+                    <p style="text-align: center; margin: 4px"> by </p>
+                    <select v-model="branchData.underRatio" @change="updateUnder">
+                        <option value="Authors">Authors</option>
+                        <option value="Committers">Committers</option>
+                        <option value="Reviewed Bys">Reviewed Bys</option>
+                        <option value="Tested Bys">Tested Bys</option>
+                        <option value="Suggested Bys">Suggested Bys</option>
+                        <option value="Reported Bys">Reported Bys</option>
+                        <option value="Tested Bys">Tested Bys</option>
+                        <option value="ACK'd Bys">ACK'd Bys</option>
+                        <option value="Authoring Maintainers">Authoring Maintainers</option>
+                        <option value="Supporting Maintainers">Supporting Maintainers</option>
+                        <option value="Committing Maintainers">Committing Maintainers</option>
+                        <option value="Maintainers Listed">Maintainers Listed</option>
+                        <option value="Total Contributors">Total Contributors</option>
+                        <option value="Maintainers Listed">Maintainers Listed</option>
+                        <option value="Commits">Commits</option>
+                        <option value="LoC Added">LoC Added</option>
+                        <option value="LoC Removed">LoC Removed</option>
+                        <option value="LoC Net">LoC Net</option>
+                        <option value="LoC Changes">LoC Changes</option>
+                    </select>
+                </div>
+            </div>
+					</div>
+				</div>
+    </div>
+</body>
+</html>
