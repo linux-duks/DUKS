@@ -1,3 +1,6 @@
+const PLOT_ELEMENT_ID = 'plotDiv';
+const ZOOM_EVENT_KEYS = ['xaxis.range[0]', 'yaxis.range[0]', 'yaxis2.range[0]'];
+
 async function get_commits(window_size){
 		result = await fetch(`/api/commits?window_size=${window_size}`)
     json_commits = await result.json()
@@ -28,10 +31,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     showRatio: false
                 },
                 windowSize: '14',
+                isLoading: false,
+                resizeTimeout: null,
                 collectedCommits: null,
                 collectedTags: null,
-                resizeTimeout: null,
-                isLoading: false
+                plot: {
+                    initialized: false,
+                    savedZoomState: null
+                }
             }
         },
         mounted() {
@@ -43,32 +50,95 @@ document.addEventListener('DOMContentLoaded', () => {
             window.removeEventListener('resize', this.handleResize);
         },
         methods: {
+            // === Plot State Management ===
+            getPlotElement() {
+                return document.getElementById(PLOT_ELEMENT_ID);
+            },
+            
+            saveZoomState() {
+                const plotDiv = this.getPlotElement();
+                if (!plotDiv?.layout?.xaxis) return;
+                
+                this.plot.savedZoomState = {
+                    xaxis: this._extractAxisState(plotDiv.layout.xaxis),
+                    yaxis: this._extractAxisState(plotDiv.layout.yaxis),
+                    yaxis2: plotDiv.layout.yaxis2 ? this._extractAxisState(plotDiv.layout.yaxis2) : null
+                };
+            },
+            
+            _extractAxisState(axis) {
+                return {
+                    range: axis.range,
+                    autorange: axis.autorange
+                };
+            },
+            
+            applyZoomState(layout) {
+                if (!this.plot.savedZoomState) return layout;
+                
+                this._applyAxisState(layout.xaxis, this.plot.savedZoomState.xaxis);
+                this._applyAxisState(layout.yaxis, this.plot.savedZoomState.yaxis);
+                
+                if (this.plot.savedZoomState.yaxis2 && layout.yaxis2) {
+                    this._applyAxisState(layout.yaxis2, this.plot.savedZoomState.yaxis2);
+                }
+                
+                return layout;
+            },
+            
+            _applyAxisState(layoutAxis, savedState) {
+                if (savedState?.range) {
+                    layoutAxis.range = savedState.range;
+                    layoutAxis.autorange = false;
+                }
+            },
+            
+            clearZoomState() {
+                this.plot.savedZoomState = null;
+            },
+            
+            handlePlotRelayout(eventData) {
+                const hasZoomChange = ZOOM_EVENT_KEYS.some(key => eventData[key] !== undefined);
+                if (hasZoomChange) {
+                    this.saveZoomState();
+                }
+            },
+            
+            // === UI Event Handlers ===
+            replotWithZoomPreservation() {
+                this.saveZoomState();
+                this.plot_figure();
+            },
             handleResize() {
                 // Debounce resize events
                 if (this.resizeTimeout) {
                     clearTimeout(this.resizeTimeout);
                 }
                 this.resizeTimeout = setTimeout(() => {
-                    const plotDiv = document.getElementById('plotDiv');
+                    const plotDiv = this.getPlotElement();
                     if (plotDiv) {
                         Plotly.Plots.resize(plotDiv);
                     }
                 }, 250); // 250ms debounce
             },
+            
+            // === Filter Change Handlers ===
             replotOnToggle() {
-                this.plot_figure();
+                this.replotWithZoomPreservation();
             },
             toggleCustomRatio() {
-                this.plot_figure();
+                this.replotWithZoomPreservation();
             },
             updateOver() {
-                this.plot_figure();
+                this.replotWithZoomPreservation();
             },
             updateUnder() {
-                this.plot_figure();
+                this.replotWithZoomPreservation();
             },
             async updateWindowLen() {
 								this.isLoading = true;
+                this.plot.initialized = false; // Reset plot when loading new data
+                this.clearZoomState(); // Clear zoom state when changing window size
                 try {
 									await this.fetchData(this.windowSize);
 									await this.computeBranchData();
@@ -157,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Wait for next tick to ensure DOM is ready
                 await this.$nextTick();
                 try {
-                    const plotDiv = document.getElementById('plotDiv');
+                    const plotDiv = this.getPlotElement();
                     if (!plotDiv) {
                         console.error('Plot div not found');
                         return;
@@ -326,7 +396,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         annotations: tagLabels
                     };
 
-                    await Plotly.newPlot('plotDiv', data, layout);
+                    layout = this.applyZoomState(layout);
+
+                    if (this.plot.initialized) {
+                        await Plotly.react(PLOT_ELEMENT_ID, data, layout);
+                    } else {
+                        await Plotly.newPlot(PLOT_ELEMENT_ID, data, layout);
+                        this.plot.initialized = true;
+                        
+                        // Add event listener to save zoom state when user zooms
+                        const plotDiv = this.getPlotElement();
+                        plotDiv.on('plotly_relayout', this.handlePlotRelayout);
+                    }
                 } catch (error) {
                     console.error('Error plotting figure:', error);
                 } finally {

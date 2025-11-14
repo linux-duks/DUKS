@@ -66,6 +66,11 @@ def home():
     return app.send_static_file("index.html")
 
 
+@app.route("/dashboard")
+def dashboard():
+    return app.send_static_file("dashboard.html")
+
+
 class ORJSONDecoder:
     def __init__(self, **kwargs):
         # eventually take into consideration when deserializing

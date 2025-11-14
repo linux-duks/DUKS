@@ -1,5 +1,5 @@
 # Use a lightweight official Python image
-FROM docker.io/python:3.12.10-slim
+FROM docker.io/python:3.14-slim
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
