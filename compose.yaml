@@ -1,13 +1,13 @@
-name: kernelviz
+name: linux-duks
 
 services:
   api:
-    image: localhost/api
     environment:
       - DEBUG=false
     build:
       context: server/
       dockerfile: Containerfile.prod
+    image: duks-server:latest
     volumes:
       - ./data/:/data:z
     ports:
