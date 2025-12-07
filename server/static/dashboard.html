@@ -1,211 +1,640 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8" />
     <title>DUKS: Dashboard for Unified Kernel Statistics</title>
 		<meta name="description" content="Analytical Dashboard of the Linux Kernel development cycles and its contributors">
-		<meta name="keywords" content="Linux, Kernel, Open Surce, Analytical, Dashboard">
+		<meta name="keywords" content="Linux, Kernel, Open Source, Analytical, Dashboard">
 		<meta name="author" content="Rafael Passos <rafael@rcpassos.me>">
 		<meta name="author" content="Arthur Pilone Maia da Silva <arthurpilone@usp.br>">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
-    <!-- <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script> -->
-		<!-- <script src="https://cdn.plot.ly/plotly-3.1.0.js" charset="utf-8"></script> -->
+    
+    <!-- DaisyUI and Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.24/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Override DaisyUI colors to match project theme -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // Green palette matching project branding
+                        'primary': '#16a34a',     
+                        'primary-content': '#ffffff',
+                        'secondary': '#15803d',  
+                        'secondary-content': '#ffffff',
+                        'accent': '#65a30d',     
+                        'accent-content': '#ffffff',
+                        
+                        // Neutral palette for text and backgrounds
+                        'neutral': '#374151',     
+                        'neutral-content': '#f9fafb',
+                        'base-100': '#ffffff',    
+                        'base-200': '#f9fafb',   
+                        'base-300': '#f3f4f6',    
+                        'base-content': '#1f2937',
+                    }
+                }
+            }
+        }
+    </script>
+    
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="static/script.js"></script>
     <script src="https://cdn.plot.ly/plotly-3.1.0.min.js" charset="utf-8"></script>
-    <link rel="stylesheet" href="static/style.css">
-    <link rel="stylesheet" href="static/normalize.css">
+    
+    <style>
+        /* =================================================================
+           LAYOUT & STRUCTURE
+           ================================================================= */
+        
+        html, body { 
+            height: 100%; 
+            overflow: hidden; /* Prevent body scroll, use component-level scrolling */
+        }
+        
+        .dashboard-container { 
+            height: 100vh; 
+            overflow: hidden; /* Main container takes full viewport */
+        }
+        
+        /* Component-specific height calculations */
+        .plot-container,
+        .controls-container {
+            height: calc(100vh - 6rem); /* Reduced from 8rem to 6rem for more space */
+            overflow: hidden; /* Prevent any overflow */
+        }
+        
+        .plot-container {
+            min-height: 400px; /* Ensure minimum usable plot size */
+        }
+        
+        .controls-scroll {
+            max-height: calc(100vh - 10rem); /* Account for header, padding, and card padding */
+            overflow-x: hidden; /* Prevent horizontal scroll */
+            overflow-y: auto; /* Allow vertical scroll if needed */
+            padding-right: 0.75rem; /* Add space from scrollbar */
+        }
+        
+        /* Prevent text and elements from overflowing horizontally */
+        .controls-container .label-text {
+            word-break: break-word;
+            hyphens: auto;
+            font-size: 0.85rem !important; /* Slightly larger than before */
+            line-height: 1.3;
+        }
+        
+        .controls-container .form-control {
+            min-width: 0; /* Allow shrinking */
+        }
+        
+        .controls-container .label {
+            padding: 0.4rem 0; /* More comfortable padding */
+            min-height: auto;
+        }
+        
+        .controls-container select {
+            min-width: 0; /* Allow select to shrink */
+            width: 100%;
+            font-size: 0.85rem; /* Larger select text */
+        }
+        
+        .controls-container .checkbox {
+            width: 1.25rem !important; /* Slightly larger checkboxes */
+            height: 1.25rem !important;
+        }
+        
+        .controls-container h3 {
+            font-size: 0.875rem !important; /* Larger headers */
+            padding-bottom: 0.5rem !important;
+        }
+        
+        .controls-container fieldset {
+            margin: 0.75rem 0; /* More breathing room */
+        }
+        
+        .controls-container .divider {
+            margin: 0.75rem 0;
+        }
+        
+        /* =================================================================
+           SCROLLBAR STYLING
+           ================================================================= */
+        
+        .controls-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .controls-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+            margin: 0.5rem 0;
+        }
+        
+        .controls-scroll::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+        
+        .controls-scroll::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+        
+        /* =================================================================
+           LOADING STATE
+           ================================================================= */
+        
+        .loading-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            transition: opacity 0.3s ease;
+        }
+        
+        /* =================================================================
+           TOOLTIP SYSTEM
+           ================================================================= */
+        
+        .tooltip-custom .tooltip-text {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            z-index: 1000;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #374151;
+            color: white;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 14px;
+            white-space: nowrap;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        .tooltip-custom:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .ratio-section {
+            transition: all 0.4s ease;
+            border-radius: 8px;
+        }
+        
+        .ratio-section.active {
+            background: linear-gradient(135deg, rgba(22, 163, 74, 0.08) 0%, rgba(22, 163, 74, 0.04) 100%);
+            border: 1px solid rgba(22, 163, 74, 0.25);
+            padding: 16px;
+            margin: 12px 0;
+            box-shadow: 0 2px 8px rgba(22, 163, 74, 0.1);
+        }
+        
+        .ratio-section.active h4 {
+            color: #16a34a;
+        }
+    </style>
 </head>
-<body>
-    <div id="app" class="app">
-        <header>
-            <h1>🦆 DUKS - Dashboard for Unified Kernel Statistics</h1>
-        </header>
-        <div class="cards">
-					
-        <div class="card">
-                <div class="loading-spinner" :class="{ active: isLoading }"></div>
-								<div id="plotDiv" style="width:100%; height:100vh"></div>
-				</div>
-
-        <div class="card">
-            <div id="controls" class="controls">
-								<div class="tooltip"> Rollable Values
-									<span class="tooltiptext">Values uniquely counted in the Sliding Window Length</span>
-								</div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Authors" @change="replotOnToggle" />
-                    <label class="tooltip"> Authors
-											<span class="tooltiptext">Unique authors</span>
-										</label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Committers" @change="replotOnToggle" />
-                    <label class="tooltip"> Committers
-											<span class="tooltiptext">Unique Committers</span>
-										</label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Reviewed Bys" @change="replotOnToggle" />
-                    <label class="tooltip"> Reviewed-by's
-											<span class="tooltiptext">Unique emails attributed as Reviewers</span>
-										</label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Tested Bys" @change="replotOnToggle" />
-                    <label class="tooltip"> Tested-by's 
-											<span class="tooltiptext">Unique emails attributed as Testers</span>
-										</label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Suggested Bys" @change="replotOnToggle" />
-                    <label class="tooltip"> Suggested-by's 
-											<span class="tooltiptext">Unique emails attributed as Suggesters</span>
-										</label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Reported Bys" @change="replotOnToggle" />
-                    <label class="tooltip"> Reported-by's 
-											<span class="tooltiptext">Unique emails attributed as Reporters</span>
-										</label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="ACK'd Bys" @change="replotOnToggle" />
-                    <label class="tooltip"> ACK'd-by's
-											<span class="tooltiptext">Unique emails giving ack's</span>
-										</label>
-                </div>
-                <br>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Authoring Maintainers" @change="replotOnToggle" />
-                    <label class="tooltip"> Authoring Maintainers 
-											<span class="tooltiptext">Authors present in the Maintainers file</span>
-										</label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Supporting Maintainers" @change="replotOnToggle" />
-                    <label class="tooltip"> Supporting Maintainers
-											<span class="tooltiptext">Participants present Maintainers file (everything but author/committer)</span>
-										</label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Committing Maintainers" @change="replotOnToggle" />
-                    <label class="tooltip"> Committing Maintainers
-											<span class="tooltiptext">Commiters present Maintainers file</span>
-										</label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Supporting Contributors" @change="replotOnToggle" />
-                    <label class="tooltip"> Supporting Contributors
-											<span class="tooltiptext">All contributors but author/committer</span>
-										</label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Total Contributors" @change="replotOnToggle" />
-                    <label class="tooltip"> Total Contributors
-											<span class="tooltiptext">All contributors</span>
-										</label>
-                </div>
-                <div>
-                    <label class="tooltip"> Sliding Window Length 
-											<span class="tooltiptext">Date window size considered when counting unique contributors</span>
-										</label>
-                    <select v-model="windowSize" @change="updateWindowLen">  
-                        <option value="1">1 Day</option>
-                        <option value="5">5 Days</option>
-                        <option value="14">2 Weeks</option>
-                        <option value="30">1 Month</option>
-                        <option value="60">2 Months</option>
-                        <option value="120">4 Months</option>
-                        <option value="365">1 Year</option>
-                    </select>
-                </div>
-                <br>
-								<div class="tooltip"> Absolute Values
-									<span class="tooltiptext">Values always shown as daily absolute values</span>
-								</div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Maintainers Listed" @change="replotOnToggle" />
-                    <label for="checkMaintainers_Listed"> Entries on MAINTEINERS file </label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.leftDataPoints" value="Commits" @change="replotOnToggle" />
-                    <label for="checkCommits"> Commits </label>
-                </div>
-                <br>
-                <div>
-                    <input type="checkbox" v-model="branchData.rightDataPoints" value="LoC Added" @change="replotOnToggle" />
-                    <label for="checkLoC_Added"> LoC added </label> 
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.rightDataPoints" value="LoC Removed" @change="replotOnToggle" />
-                    <label for="checkLoC_Removed"> LoC removed </label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.rightDataPoints" value="LoC Changes" @change="replotOnToggle" />
-                    <label for="checkLoC_Changes"> LoC changed </label>
-                </div>
-                <div>
-                    <input type="checkbox" v-model="branchData.rightDataPoints" value="LoC Net" @change="replotOnToggle" />
-                    <label for="checkLoC_Net"> Net LoC flow </label>
-                </div>
-                <br>
-                <div>
-                    <input type="checkbox" v-model="branchData.showTags" @change="replotOnToggle" />
-                    <label for="checkTags"> Show Release Tags </label>
-                </div>
-                <br>
-                <div>
-                    <input type="checkbox" v-model="branchData.showRatio" @change="toggleCustomRatio" />
-                    <label for="checkCustom"> Plot Custom Ratio</label>
-                </div>
-                <div v-show="branchData.showRatio">
-                    <select v-model="branchData.overRatio" @change="updateOver">  
-                        <option value="Authors">Authors</option>
-                        <option value="Committers">Committers</option>
-                        <option value="Reviewed Bys">Reviewed Bys</option>
-                        <option value="Tested Bys">Tested Bys</option>
-                        <option value="Suggested Bys">Suggested Bys</option>
-                        <option value="Reported Bys">Reported Bys</option>
-                        <option value="Tested Bys">Tested Bys</option>
-                        <option value="ACK'd Bys">ACK'd Bys</option>
-                        <option value="Authoring Maintainers">Authoring Maintainers</option>
-                        <option value="Supporting Maintainers">Supporting Maintainers</option>
-                        <option value="Committing Maintainers">Committing Maintainers</option>
-                        <option value="Total Contributors">Total Contributors</option>
-                        <option value="Maintainers Listed">Maintainers Listed</option>
-                        <option value="Commits">Commits</option>
-                        <option value="LoC Added">LoC Added</option>
-                        <option value="LoC Removed">LoC Removed</option>
-                        <option value="LoC Net">LoC Net</option>
-                        <option value="LoC Changes">LoC Changes</option>
-                    </select>
-                    <p style="text-align: center; margin: 4px"> by </p>
-                    <select v-model="branchData.underRatio" @change="updateUnder">
-                        <option value="Authors">Authors</option>
-                        <option value="Committers">Committers</option>
-                        <option value="Reviewed Bys">Reviewed Bys</option>
-                        <option value="Tested Bys">Tested Bys</option>
-                        <option value="Suggested Bys">Suggested Bys</option>
-                        <option value="Reported Bys">Reported Bys</option>
-                        <option value="Tested Bys">Tested Bys</option>
-                        <option value="ACK'd Bys">ACK'd Bys</option>
-                        <option value="Authoring Maintainers">Authoring Maintainers</option>
-                        <option value="Supporting Maintainers">Supporting Maintainers</option>
-                        <option value="Committing Maintainers">Committing Maintainers</option>
-                        <option value="Maintainers Listed">Maintainers Listed</option>
-                        <option value="Total Contributors">Total Contributors</option>
-                        <option value="Maintainers Listed">Maintainers Listed</option>
-                        <option value="Commits">Commits</option>
-                        <option value="LoC Added">LoC Added</option>
-                        <option value="LoC Removed">LoC Removed</option>
-                        <option value="LoC Net">LoC Net</option>
-                        <option value="LoC Changes">LoC Changes</option>
-                    </select>
-                </div>
+<!-- =============================================================================
+     MAIN APPLICATION CONTAINER
+     ============================================================================= -->
+<body class="bg-base-200">
+    <div id="app" class="dashboard-container flex flex-col">
+        
+        <!-- =================================================================
+             HEADER NAVIGATION
+             ================================================================= -->
+        <header class="navbar bg-white shadow-lg border-b border-green-100 h-16 min-h-16" role="banner">
+            <div class="flex-1 justify-center">
+                <h1 class="text-xl font-bold text-green-600 text-center">
+                    🦆 DUKS - Dashboard for Unified Kernel Statistics
+                </h1>
             </div>
-					</div>
-				</div>
+        </header>
+        
+        <!-- Main Content Grid -->
+        <main class="flex-1 grid grid-cols-1 lg:grid-cols-9 gap-4 p-4 overflow-hidden min-h-0" role="main">
+            
+            <section class="lg:col-span-7 card bg-base-100 shadow-xl relative plot-container" 
+                     aria-label="Data Visualization">
+                
+                <div class="loading-overlay" 
+                     :class="{ 'opacity-0 pointer-events-none': !isLoading, 'opacity-100': isLoading }"
+                     aria-hidden="true">
+                    <span class="loading loading-spinner loading-lg text-primary"></span>
+                </div>
+                
+                <div class="card-body p-0 h-full">
+                    <div id="plotDiv" 
+                         class="w-full h-full rounded-box" 
+                         role="img" 
+                         aria-label="Interactive data visualization chart"></div>
+                </div>
+            </section>
+
+            <aside class="lg:col-span-2 card bg-base-100 shadow-xl controls-container overflow-hidden" 
+                   aria-label="Visualization Controls">
+                
+                <div class="card-body p-4 h-full flex flex-col">
+                    <div class="controls-scroll overflow-x-hidden overflow-y-auto flex-1 space-y-3" role="group"
+                         aria-label="Data visualization configuration options">
+                        <fieldset class="space-y-3">
+                            <legend class="tooltip-custom relative">
+                                <h3 class="text-sm font-semibold text-base-content border-b pb-2">
+                                    Rollable Values
+                                </h3>
+                                <span class="tooltip-text">Values uniquely counted in the Sliding Window Length</span>
+                            </legend>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text tooltip-custom relative">
+                                        Authors
+                                        <span class="tooltip-text">Unique authors</span>
+                                    </span>
+                                    <input type="checkbox" 
+                                           v-model="branchData.leftDataPoints" 
+                                           value="Authors" 
+                                           @change="replotOnToggle" 
+                                           class="checkbox checkbox-primary" 
+                                           aria-describedby="authors-desc" />
+                                </label>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text tooltip-custom relative">
+                                        Committers
+                                        <span class="tooltip-text">Unique Committers</span>
+                                    </span>
+                                    <input type="checkbox" 
+                                           v-model="branchData.leftDataPoints" 
+                                           value="Committers" 
+                                           @change="replotOnToggle" 
+                                           class="checkbox checkbox-primary" />
+                                </label>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text tooltip-custom relative">
+                                        Reviewed-by's
+                                        <span class="tooltip-text">Unique emails attributed as Reviewers</span>
+                                    </span>
+                                    <input type="checkbox" 
+                                           v-model="branchData.leftDataPoints" 
+                                           value="Reviewed Bys" 
+                                           @change="replotOnToggle" 
+                                           class="checkbox checkbox-primary" />
+                                </label>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text tooltip-custom relative">
+                                        Tested-by's
+                                        <span class="tooltip-text">Unique emails attributed as Testers</span>
+                                    </span>
+                                    <input type="checkbox" 
+                                           v-model="branchData.leftDataPoints" 
+                                           value="Tested Bys" 
+                                           @change="replotOnToggle" 
+                                           class="checkbox checkbox-primary" />
+                                </label>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text tooltip-custom relative">
+                                        Suggested-by's
+                                        <span class="tooltip-text">Unique emails attributed as Suggesters</span>
+                                    </span>
+                                    <input type="checkbox" 
+                                           v-model="branchData.leftDataPoints" 
+                                           value="Suggested Bys" 
+                                           @change="replotOnToggle" 
+                                           class="checkbox checkbox-primary" />
+                                </label>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text tooltip-custom relative">
+                                        Reported-by's
+                                        <span class="tooltip-text">Unique emails attributed as Reporters</span>
+                                    </span>
+                                    <input type="checkbox" 
+                                           v-model="branchData.leftDataPoints" 
+                                           value="Reported Bys" 
+                                           @change="replotOnToggle" 
+                                           class="checkbox checkbox-primary" />
+                                </label>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text tooltip-custom relative">
+                                        ACK'd-by's
+                                        <span class="tooltip-text">Unique emails giving ack's</span>
+                                    </span>
+                                    <input type="checkbox" 
+                                           v-model="branchData.leftDataPoints" 
+                                           value="ACK'd Bys" 
+                                           @change="replotOnToggle" 
+                                           class="checkbox checkbox-primary" />
+                                </label>
+                            </div>
+                        </fieldset>
+
+                        <div class="divider"></div>
+
+                        <fieldset class="space-y-3">
+                            <legend>
+                                <h3 class="text-sm font-semibold text-base-content border-b pb-2">
+                                    Maintainers & Contributors
+                                </h3>
+                            </legend>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text tooltip-custom relative">
+                                        Authoring Maintainers
+                                        <span class="tooltip-text">Authors present in the Maintainers file</span>
+                                    </span>
+                                    <input type="checkbox" 
+                                           v-model="branchData.leftDataPoints" 
+                                           value="Authoring Maintainers" 
+                                           @change="replotOnToggle" 
+                                           class="checkbox checkbox-primary" />
+                                </label>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text tooltip-custom relative">
+                                        Supporting Maintainers
+                                        <span class="tooltip-text">Participants present Maintainers file (everything but author/committer)</span>
+                                    </span>
+                                    <input type="checkbox" 
+                                           v-model="branchData.leftDataPoints" 
+                                           value="Supporting Maintainers" 
+                                           @change="replotOnToggle" 
+                                           class="checkbox checkbox-primary" />
+                                </label>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text tooltip-custom relative">
+                                        Committing Maintainers
+                                        <span class="tooltip-text">Commiters present Maintainers file</span>
+                                    </span>
+                                    <input type="checkbox" 
+                                           v-model="branchData.leftDataPoints" 
+                                           value="Committing Maintainers" 
+                                           @change="replotOnToggle" 
+                                           class="checkbox checkbox-primary" />
+                                </label>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text tooltip-custom relative">
+                                        Supporting Contributors
+                                        <span class="tooltip-text">All contributors but author/committer</span>
+                                    </span>
+                                    <input type="checkbox" 
+                                           v-model="branchData.leftDataPoints" 
+                                           value="Supporting Contributors" 
+                                           @change="replotOnToggle" 
+                                           class="checkbox checkbox-primary" />
+                                </label>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text tooltip-custom relative">
+                                        Total Contributors
+                                        <span class="tooltip-text">All contributors</span>
+                                    </span>
+                                    <input type="checkbox" 
+                                           v-model="branchData.leftDataPoints" 
+                                           value="Total Contributors" 
+                                           @change="replotOnToggle" 
+                                           class="checkbox checkbox-primary" />
+                                </label>
+                            </div>
+                        </fieldset>
+
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text tooltip-custom relative font-medium">
+                                    Sliding Window Length
+                                    <span class="tooltip-text">Date window size considered when counting unique contributors</span>
+                                </span>
+                            </label>
+                            <select v-model="windowSize" 
+                                    @change="updateWindowLen" 
+                                    class="select select-bordered select-sm"
+                                    aria-label="Select sliding window length for data aggregation">
+                                <option value="1">1 Day</option>
+                                <option value="5">5 Days</option>
+                                <option value="14">2 Weeks</option>
+                                <option value="30">1 Month</option>
+                                <option value="60">2 Months</option>
+                                <option value="120">4 Months</option>
+                                <option value="365">1 Year</option>
+                            </select>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <fieldset class="space-y-3">
+                            <legend class="tooltip-custom relative">
+                                <h3 class="text-sm font-semibold text-base-content border-b pb-2">
+                                    Absolute Values
+                                </h3>
+                                <span class="tooltip-text">Values always shown as daily absolute values</span>
+                            </legend>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text tooltip-custom relative">
+                                        Maintainers File Entries
+                                        <span class="tooltip-text">Entries on MAINTAINERS file</span>
+                                    </span>
+                                    <input type="checkbox" 
+                                           v-model="branchData.leftDataPoints" 
+                                           value="Maintainers Listed" 
+                                           @change="replotOnToggle" 
+                                           class="checkbox checkbox-primary" />
+                                </label>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text">Commits</span>
+                                    <input type="checkbox" 
+                                           v-model="branchData.leftDataPoints" 
+                                           value="Commits" 
+                                           @change="replotOnToggle" 
+                                           class="checkbox checkbox-primary" />
+                                </label>
+                            </div>
+                        </fieldset>
+
+                        <div class="divider"></div>
+
+                        <fieldset class="space-y-3">
+                            <legend>
+                                <h3 class="text-sm font-semibold text-base-content border-b pb-2">
+                                    Lines of Code Metrics
+                                </h3>
+                            </legend>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text">LoC added</span>
+                                    <input type="checkbox" 
+                                           v-model="branchData.rightDataPoints" 
+                                           value="LoC Added" 
+                                           @change="replotOnToggle" 
+                                           class="checkbox checkbox-secondary" />
+                                </label>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text">LoC removed</span>
+                                    <input type="checkbox" 
+                                           v-model="branchData.rightDataPoints" 
+                                           value="LoC Removed" 
+                                           @change="replotOnToggle" 
+                                           class="checkbox checkbox-secondary" />
+                                </label>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text">LoC changed</span>
+                                    <input type="checkbox" 
+                                           v-model="branchData.rightDataPoints" 
+                                           value="LoC Changes" 
+                                           @change="replotOnToggle" 
+                                           class="checkbox checkbox-secondary" />
+                                </label>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text">Net LoC flow</span>
+                                    <input type="checkbox" 
+                                           v-model="branchData.rightDataPoints" 
+                                           value="LoC Net" 
+                                           @change="replotOnToggle" 
+                                           class="checkbox checkbox-secondary" />
+                                </label>
+                            </div>
+                        </fieldset>
+
+                        <div class="divider"></div>
+
+                        <fieldset class="space-y-3">
+                            <legend>
+                                <h3 class="text-sm font-semibold text-base-content border-b pb-2">
+                                    Additional Options
+                                </h3>
+                            </legend>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text">Show Release Tags</span>
+                                    <input type="checkbox" 
+                                           v-model="branchData.showTags" 
+                                           @change="replotOnToggle" 
+                                           class="checkbox checkbox-accent" />
+                                </label>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <span class="label-text">Plot Custom Ratio</span>
+                                    <input type="checkbox" 
+                                           v-model="branchData.showRatio" 
+                                           @change="handleCustomRatioToggle" 
+                                           class="checkbox checkbox-accent" />
+                                </label>
+                            </div>
+                            
+                            <div id="custom-ratio-section" 
+                                 v-show="branchData.showRatio" 
+                                 class="ratio-section space-y-3" 
+                                 :class="{ active: branchData.showRatio }"
+                                 role="group" 
+                                 aria-label="Custom ratio configuration">
+                                <h4 class="text-sm font-medium text-base-content">Configure Ratio:</h4>
+                                <label class="sr-only" for="ratio-numerator">Ratio numerator</label>
+                                <select id="ratio-numerator"
+                                        v-model="branchData.overRatio" 
+                                        @change="updateOver" 
+                                        class="select select-bordered select-sm w-full"
+                                        aria-label="Select numerator for custom ratio">
+                                    <option value="Authors">Authors</option>
+                                    <option value="Committers">Committers</option>
+                                    <option value="Reviewed Bys">Reviewed Bys</option>
+                                    <option value="Tested Bys">Tested Bys</option>
+                                    <option value="Suggested Bys">Suggested Bys</option>
+                                    <option value="Reported Bys">Reported Bys</option>
+                                    <option value="ACK'd Bys">ACK'd Bys</option>
+                                    <option value="Authoring Maintainers">Authoring Maintainers</option>
+                                    <option value="Supporting Maintainers">Supporting Maintainers</option>
+                                    <option value="Committing Maintainers">Committing Maintainers</option>
+                                    <option value="Total Contributors">Total Contributors</option>
+                                    <option value="Maintainers Listed">Maintainers Listed</option>
+                                    <option value="Commits">Commits</option>
+                                    <option value="LoC Added">LoC Added</option>
+                                    <option value="LoC Removed">LoC Removed</option>
+                                    <option value="LoC Net">LoC Net</option>
+                                    <option value="LoC Changes">LoC Changes</option>
+                                </select>
+                                
+                                <p class="text-center text-sm text-base-content/70" aria-hidden="true">by</p>
+                                
+                                <label class="sr-only" for="ratio-denominator">Ratio denominator</label>
+                                <select id="ratio-denominator"
+                                        v-model="branchData.underRatio" 
+                                        @change="updateUnder" 
+                                        class="select select-bordered select-sm w-full"
+                                        aria-label="Select denominator for custom ratio">
+                                    <option value="Authors">Authors</option>
+                                    <option value="Committers">Committers</option>
+                                    <option value="Reviewed Bys">Reviewed Bys</option>
+                                    <option value="Tested Bys">Tested Bys</option>
+                                    <option value="Suggested Bys">Suggested Bys</option>
+                                    <option value="Reported Bys">Reported Bys</option>
+                                    <option value="ACK'd Bys">ACK'd Bys</option>
+                                    <option value="Authoring Maintainers">Authoring Maintainers</option>
+                                    <option value="Supporting Maintainers">Supporting Maintainers</option>
+                                    <option value="Committing Maintainers">Committing Maintainers</option>
+                                    <option value="Total Contributors">Total Contributors</option>
+                                    <option value="Maintainers Listed">Maintainers Listed</option>
+                                    <option value="Commits">Commits</option>
+                                    <option value="LoC Added">LoC Added</option>
+                                    <option value="LoC Removed">LoC Removed</option>
+                                    <option value="LoC Net">LoC Net</option>
+                                    <option value="LoC Changes">LoC Changes</option>
+                                </select>
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+            </aside>
+        </main>
     </div>
 </body>
 </html>

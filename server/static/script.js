@@ -129,6 +129,31 @@ document.addEventListener('DOMContentLoaded', () => {
             toggleCustomRatio() {
                 this.replotWithZoomPreservation();
             },
+            handleCustomRatioToggle() {
+                this.toggleCustomRatio();
+                
+                // If ratio is being enabled, scroll to show the new options
+                if (this.branchData.showRatio) {
+                    this.$nextTick(() => {
+                        const ratioSection = document.getElementById('custom-ratio-section');
+                        const controlsContainer = document.querySelector('.controls-scroll');
+                        
+                        if (ratioSection && controlsContainer) {
+                            // Calculate the position to scroll to
+                            const ratioSectionTop = ratioSection.offsetTop;
+                            const controlsHeight = controlsContainer.clientHeight;
+                            const ratioSectionHeight = ratioSection.offsetHeight;
+                            
+                            const scrollTop = Math.max(0, ratioSectionTop - (controlsHeight - ratioSectionHeight) / 2);
+                            
+                            controlsContainer.scrollTo({
+                                top: scrollTop,
+                                behavior: 'smooth'
+                            });
+                        }
+                    });
+                }
+            },
             updateOver() {
                 this.replotWithZoomPreservation();
             },
