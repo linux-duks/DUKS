@@ -181,6 +181,23 @@
             visibility: visible;
             opacity: 1;
         }
+        
+        .ratio-section {
+            transition: all 0.4s ease;
+            border-radius: 8px;
+        }
+        
+        .ratio-section.active {
+            background: linear-gradient(135deg, rgba(22, 163, 74, 0.08) 0%, rgba(22, 163, 74, 0.04) 100%);
+            border: 1px solid rgba(22, 163, 74, 0.25);
+            padding: 16px;
+            margin: 12px 0;
+            box-shadow: 0 2px 8px rgba(22, 163, 74, 0.1);
+        }
+        
+        .ratio-section.active h4 {
+            color: #16a34a;
+        }
     </style>
 </head>
 <!-- =============================================================================
@@ -549,12 +566,18 @@
                                     <span class="label-text">Plot Custom Ratio</span>
                                     <input type="checkbox" 
                                            v-model="branchData.showRatio" 
-                                           @change="toggleCustomRatio" 
+                                           @change="handleCustomRatioToggle" 
                                            class="checkbox checkbox-accent" />
                                 </label>
                             </div>
                             
-                            <div v-show="branchData.showRatio" class="space-y-1" role="group" aria-label="Custom ratio configuration">
+                            <div id="custom-ratio-section" 
+                                 v-show="branchData.showRatio" 
+                                 class="ratio-section space-y-3" 
+                                 :class="{ active: branchData.showRatio }"
+                                 role="group" 
+                                 aria-label="Custom ratio configuration">
+                                <h4 class="text-sm font-medium text-base-content">Configure Ratio:</h4>
                                 <label class="sr-only" for="ratio-numerator">Ratio numerator</label>
                                 <select id="ratio-numerator"
                                         v-model="branchData.overRatio" 
