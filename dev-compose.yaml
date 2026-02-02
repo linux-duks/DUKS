@@ -1,4 +1,4 @@
-name: kernelviz
+name: duks-dev
 
 services:
   server:
@@ -7,6 +7,7 @@ services:
     build:
       context: server/
       dockerfile: Dockerfile
+    image: duks-server-dev:latest
     volumes:
       - ./data/:/data:z
       - ./server/:/app:z
