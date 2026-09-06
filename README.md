@@ -18,12 +18,29 @@ Obtain the sample data files in the archived [replication package](https://archi
 The file structure
 
 ```
-├── data    -> where the data files should be stored
-├── nginx    -> configurations for nginx (for production)
-├── scripts   -> scripts used to generate the dataset
-└── server   -> backend source code
-    └── static -> static Frontend files
+├── data              -> where the data files should be stored
+│   └── knowledge-map -> per-repository node CSVs for the treemap (see below)
+├── nginx             -> configurations for nginx (for production)
+├── scripts           -> scripts used to generate the dataset
+└── server            -> backend source code
+    ├── knowledge_map_api.py -> treemap API blueprint (/api/knowledge-map/*)
+    └── static              -> static Frontend files
+        └── knowledge-map   -> the Knowledge Distribution Treemap page (/knowledge-map)
 ```
+
+## Dashboards
+
+- **Kernel Statistics Dashboard** (`/dashboard`) — contributor and lines-of-code
+  time series over the kernel's history.
+- **Knowledge Distribution Treemap** (`/knowledge-map`) — a nested treemap of a
+  codebase where each rectangle's area is how much code a file or folder holds
+  and its colour is its Pony Factor
+  (how few authors wrote most of that code). It reads per-repository CSVs from
+  `data/knowledge-map/*.csv`; each row is one node with at least the columns
+  `identifier`, `pony_factor`, `node_len_lines`, `node_name` (separated by `·`
+  in the per-project exports, or `,` in the `tokenFilesFull` token dump). These
+  files are not committed — obtain them from the treemap replication package.
+  The `_all_projects.csv` aggregate, if present, is ignored.
 
 ## Running from zero
 

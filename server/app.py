@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, make_response
 from data_loader import load_data, load_tags
+from knowledge_map_api import bp as knowledge_map_bp
 
 import orjson
 import os
@@ -11,6 +12,7 @@ if DEBUG != "false":
     level = logging.DEBUG
 
 app = Flask(__name__)
+app.register_blueprint(knowledge_map_bp)
 
 
 def _build_cors_preflight_response():
@@ -71,6 +73,11 @@ def home():
 @app.route("/dashboard")
 def dashboard():
     return app.send_static_file("dashboard.html")
+
+
+@app.route("/knowledge-map")
+def knowledge_map():
+    return app.send_static_file("knowledge-map/index.html")
 
 
 class ORJSONDecoder:
