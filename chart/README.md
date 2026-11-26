@@ -155,6 +155,7 @@ Service or probes for the tunnel; it is a plain sidecar.
 | `api.replicaCount` | `1` | Keep at 1 for `ReadWriteOnce` PVCs |
 | `api.port` | `6000` | gunicorn bind / Service port |
 | `api.command` / `api.args` | `[]` | Empty => `gunicorn app:app -w 4 --threads 4 -b 0.0.0.0:6000` |
+| `api.kernelCacheWarmup` | `"true"` | Pre-compute the dashboard's window sizes at startup (`KERNEL_CACHE_WARMUP`) |
 | `api.probes.*` | enabled | HTTP probes on `/` |
 | `nginx.image.repository` / `.tag` | `docker.io/nginx` / `1.31-alpine` | Same image as compose |
 | `persistence.*` | PVC, `/data`, 10Gi | See [Storage](#storage) |

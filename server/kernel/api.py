@@ -2,14 +2,16 @@
 
 Serves the commit and tag data the dashboard frontend consumes. The data
 frames themselves are built by :mod:`kernel.data_loader`; this module only
-maps HTTP requests onto them.
+maps HTTP requests onto them. The heavy commit calculation is served from the
+in-memory cache in :mod:`kernel.cache`.
 """
 
 import os
 
 from flask import Blueprint, current_app, jsonify, request
 
-from kernel.data_loader import load_data, load_tags
+from kernel.cache import get_commits_payload
+from kernel.data_loader import load_tags
 
 bp = Blueprint("kernel", __name__)
 
@@ -44,13 +46,12 @@ def add_cors_headers(response):
 def get_commits():
     """Endpoint to serve the Git commit data."""
     window_size = request.args.get("window_size", "1d")
-    if "d" not in window_size:
-        window_size = window_size + "d"
 
     current_app.logger.info("GET commits with window: %s", window_size)
 
-    data = load_data(window_date_size=window_size)
-    return jsonify(data.to_dict(as_series=False))
+    # Served from the in-memory cache: the rolling-window calculation runs at
+    # most once per window size per process (warmed at startup by default).
+    return jsonify(get_commits_payload(window_size))
 
 
 @bp.route("/api/tags", methods=["GET"])

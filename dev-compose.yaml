@@ -7,6 +7,8 @@ services:
       - DATA_DIR=/data
       # app.py binds loopback by default; the container needs the wildcard bind.
       - HOST=0.0.0.0
+      # Pre-compute the dashboard's known window sizes at startup.
+      - KERNEL_CACHE_WARMUP=${KERNEL_CACHE_WARMUP:-true}
     build:
       context: server/
       dockerfile: Dockerfile

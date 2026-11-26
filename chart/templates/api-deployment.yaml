@@ -65,6 +65,9 @@ spec:
             # mounted at exactly this path.
             - name: DATA_DIR
               value: {{ .Values.persistence.mountPath | quote }}
+            # Pre-compute the dashboard's known window sizes at startup.
+            - name: KERNEL_CACHE_WARMUP
+              value: {{ .Values.api.kernelCacheWarmup | quote }}
           volumeMounts:
             - name: data
               mountPath: {{ .Values.persistence.mountPath }}

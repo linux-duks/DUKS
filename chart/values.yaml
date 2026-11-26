@@ -39,6 +39,10 @@ api:
   args: []
   resources: {}
   podAnnotations: {}
+  # Pre-compute the dashboard's known window sizes (1, 5, 14, 30, 60, 120,
+  # 365 days) at startup so the first request for each is served from the
+  # in-memory cache. Set to "false" to compute each window on first request.
+  kernelCacheWarmup: "true"
   # Probes hit "/" (the index page) on the api port.
   probes:
     enabled: true

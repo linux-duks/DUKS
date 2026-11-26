@@ -38,6 +38,18 @@ build data paths themselves. `data_dirs.module_data_dir(<module>)` resolves
 unless the `DATA_DIR` environment variable points elsewhere (the containers set
 it to `/data`, where the data volume is mounted).
 
+### Tests
+
+The server tests live in `server/tests` and run inside the server project, so
+the application modules import exactly as they do under gunicorn:
+
+```bash
+cd server && uv run pytest
+```
+
+The repository-level `pyrightconfig.json` points Pyright at `server/.venv`
+(created by `uv sync`), so imports resolve in type-checkers and editors.
+
 ## Dashboards
 
 - **Kernel Statistics Dashboard** (`/dashboard`) — contributor and lines-of-code
@@ -82,6 +94,29 @@ Must set the `GRAPH_GRPC_SERVER` and `INITIAL_NODE`, if non-default port or comm
 ### Running application
 
 Run either `podman-compose -f dev-compose.yaml up` for development or `podman-compose up` for production build
+
+### Configuration
+
+The API reads its configuration from environment variables (both compose
+stacks and the Helm chart set them for you):
+
+| Variable | Default | Meaning |
+|----------|---------|---------|
+| `DATA_DIR` | `<repo>/data` | Data root; each module reads `<DATA_DIR>/<module>` |
+| `DEBUG` | `false` | Flask debug mode; anything but `false` enables it |
+| `HOST` | `127.0.0.1` | Bind address (`0.0.0.0` in the dev container) |
+| `PORT` | `5000` | Bind port |
+| `CORS_ALLOWED_ORIGINS` | empty | Comma-separated browser origins allowed to call the API |
+| `KERNEL_CACHE_WARMUP` | `true` | Pre-compute the dashboard's window sizes at startup; anything but `false` enables it |
+
+`/api/commits` is backed by an in-memory cache keyed by window size, so the
+expensive rolling-window calculation runs at most once per size per process.
+With `KERNEL_CACHE_WARMUP` enabled (the default) the sizes the dashboard offers
+(`1, 5, 14, 30, 60, 120, 365` days) are computed at startup and the first
+request for each is instant. Set it to `false` to skip that warm-up: the same
+windows are then computed on their first request. Other window sizes are
+computed and cached on demand either way. The cache is process-local, so a
+restart recomputes it from the data files.
 
 ## Kubernetes (Helm)
 

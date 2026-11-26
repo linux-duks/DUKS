@@ -3,7 +3,8 @@
 This is the only piece of server infrastructure that knows about every module.
 Each module exposes its own blueprint (and resolves its own data folder via
 ``data_dirs``); this file just wires them into one app and serves the static
-pages.
+pages. At import time it also warms the kernel commits cache when
+``KERNEL_CACHE_WARMUP`` allows it; see :mod:`kernel.cache`.
 """
 
 import os
@@ -11,6 +12,7 @@ import os
 from flask import Flask
 
 from kernel.api import bp as kernel_bp
+from kernel.cache import warm_cache_if_enabled
 from knowledge_map.api import bp as knowledge_map_bp
 
 # DEBUG is a string in the environment; treat anything but "false" as enabled.
@@ -34,6 +36,11 @@ PORT = _port_from_env()
 app = Flask(__name__)
 app.register_blueprint(kernel_bp)
 app.register_blueprint(knowledge_map_bp)
+
+# Pre-compute the dashboard's known window sizes so the first request for each
+# is served from the cache. KERNEL_CACHE_WARMUP=false skips this; windows are
+# then computed on demand.
+warm_cache_if_enabled()
 
 
 @app.route("/")

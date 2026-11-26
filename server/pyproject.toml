@@ -10,3 +10,8 @@ dependencies = [
     "polars>=1.35.2",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
+
