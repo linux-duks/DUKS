@@ -29,6 +29,12 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM docker.io/python:3.14-slim
 USER 1000
 
+# Without this the process starts in /, where the /app directory itself is
+# importable as an empty namespace package named `app` -- gunicorn's `app:app`
+# then fails with "Failed to find attribute 'app' in 'app'" instead of loading
+# /app/app.py.
+WORKDIR /app
+
 COPY . /app
 COPY --from=build --chown=1000:1000 /app/.venv /app/.venv
 
