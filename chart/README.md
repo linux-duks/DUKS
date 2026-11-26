@@ -87,10 +87,12 @@ make data-sync NAMESPACE=duks
 ```
 
 It resolves the api pod through the chart's component labels
-(`app.kubernetes.io/name=duks,app.kubernetes.io/component=api`), creates the
-mount path, and runs `kubectl cp ./data/. <pod>:/data/`. It needs the api pod to
-be running, and it re-copies the whole folder on each run — for very large
-datasets prefer a one-shot loader Job or an NFS export.
+(`app.kubernetes.io/name=duks,app.kubernetes.io/component=api`) and streams a tar
+of `./data`'s contents into the volume:
+
+```bash
+tar -C ./data -cf - . | kubectl exec -i <pod> -- tar -C /data --strip-components=1 -xf -
+```
 
 Override the pieces when needed:
 
@@ -157,6 +159,8 @@ Service or probes for the tunnel; it is a plain sidecar.
 | `api.command` / `api.args` | `[]` | Empty => `gunicorn app:app -w 4 --threads 4 -b 0.0.0.0:6000` |
 | `api.kernelCacheWarmup` | `"true"` | Pre-compute the dashboard's window sizes at startup (`KERNEL_CACHE_WARMUP`) |
 | `api.probes.*` | enabled | HTTP probes on `/` |
+| `api.podSecurityContext` | `fsGroup: 1000` | Makes the data volume writable by the container user — see [Permissions](#permissions) |
+| `api.securityContext` | `{}` | Container-level overrides (uid/gid come from the image's `USER`) |
 | `nginx.image.repository` / `.tag` | `docker.io/nginx` / `1.31-alpine` | Same image as compose |
 | `persistence.*` | PVC, `/data`, 10Gi | See [Storage](#storage) |
 | `ingress.*` | disabled | See [Ingress](#ingress) |

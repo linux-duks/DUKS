@@ -5,6 +5,7 @@ services:
     environment:
       - DEBUG=false
       - DATA_DIR=/data
+      - HOME=/tmp
       # Pre-compute the dashboard's known window sizes at startup. Set to
       # "false" to compute them on first request instead.
       - KERNEL_CACHE_WARMUP=${KERNEL_CACHE_WARMUP:-true}

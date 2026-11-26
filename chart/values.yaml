@@ -37,8 +37,18 @@ api:
   #   gunicorn app:app -w 4 --threads 4 -b 0.0.0.0:6000
   command: []
   args: []
-  resources: {}
+
+  resources:
+    limits:
+      memory: 5Gi
+    requests:
+      cpu: 1000m
+      memory: 3Gi
+
   podAnnotations: {}
+  podSecurityContext:
+    fsGroup: 1000
+  securityContext: {}
   # Pre-compute the dashboard's known window sizes (1, 5, 14, 30, 60, 120,
   # 365 days) at startup so the first request for each is served from the
   # in-memory cache. Set to "false" to compute each window on first request.
@@ -46,8 +56,8 @@ api:
   # Probes hit "/" (the index page) on the api port.
   probes:
     enabled: true
-    initialDelaySeconds: 5
-    periodSeconds: 10
+    initialDelaySeconds: 60
+    periodSeconds: 30
     timeoutSeconds: 3
     failureThreshold: 6
 
@@ -71,7 +81,7 @@ persistence:
   pvc:
     # Empty => the cluster default StorageClass.
     storageClassName: ""
-    size: 10Gi
+    size: 5Gi
     # ReadWriteOnce keeps the single api replica simple. Use ReadWriteMany
     # only if your StorageClass supports a shared volume.
     accessMode: ReadWriteOnce

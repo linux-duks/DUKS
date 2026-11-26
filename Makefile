@@ -81,8 +81,9 @@ data-sync: ## Copy ./data into the running api pod's data volume
 	$(eval POD := $(shell $(KUBECTL) -n $(NAMESPACE) get pods -l '$(API_POD_SELECTOR)' -o jsonpath='{.items[0].metadata.name}' 2>/dev/null))
 	@test -n "$(POD)" || { echo "error: no api pod found in namespace $(NAMESPACE) (selector: $(API_POD_SELECTOR))" >&2; exit 1; }
 	@echo "==> copying $(DATA_DIR)/ into $(POD):$(POD_DATA_PATH)"
-	$(KUBECTL) -n $(NAMESPACE) exec $(POD) -- mkdir -p $(POD_DATA_PATH)
-	$(KUBECTL) -n $(NAMESPACE) cp "$(DATA_DIR)/." "$(POD):$(POD_DATA_PATH)/"
+	tar -C "$(DATA_DIR)" -cf - . | $(KUBECTL) -n $(NAMESPACE) exec -i $(POD) -- tar -C $(POD_DATA_PATH) --strip-components=1 -xf -
+	@echo "==> done. $(POD_DATA_PATH) now contains:"
+	@$(KUBECTL) -n $(NAMESPACE) exec $(POD) -- ls -1 $(POD_DATA_PATH)
 
 ##@ Help
 
