@@ -1,0 +1,11 @@
+# Data files are obtained from the replication package, not committed (see README)
+/data/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.uv/
+
+# OS / editor
+.DS_Store

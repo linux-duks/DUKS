@@ -4,6 +4,9 @@ services:
   server:
     environment:
       - DEBUG=true
+      - DATA_DIR=/data
+      # app.py binds loopback by default; the container needs the wildcard bind.
+      - HOST=0.0.0.0
     build:
       context: server/
       dockerfile: Dockerfile

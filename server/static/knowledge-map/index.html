@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DUKS: Knowledge Distribution Treemap</title>
+    <meta name="description" content="Nested treemap of knowledge concentration (Pony Factor) across an open-source codebase">
+    <link rel="icon" href="/static/favicon.ico">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+    <link rel="stylesheet" href="/static/knowledge-map/css/style.css">
+</head>
+<body>
+
+    <nav class="duks-nav">
+        <a class="duks-brand" href="/">🦆 DUKS</a>
+        <span class="duks-sep">/</span>
+        <span class="duks-current">Knowledge Distribution Treemap</span>
+        <span class="duks-nav-spacer"></span>
+        <a href="/dashboard">Kernel Statistics Dashboard</a>
+    </nav>
+
+    <h1>Knowledge Distribution Treemap</h1>
+    <p class="subtitle">
+        Every rectangle is a file or folder: its <b>area</b> is how much code it holds,
+        its <b>colour</b> is how few people wrote that code.
+        <a id="intro-toggle" href="#" role="button" aria-expanded="false" aria-controls="intro">What am I looking at?</a>
+    </p>
+
+    <div id="intro" class="intro" hidden>
+        <p><b>The treemap.</b> Folders are boxes drawn around the boxes of what they
+        contain, so nesting on screen is nesting on disk. Area is proportional to size,
+        which means a directory takes exactly as much room as everything inside it.
+        Click a folder to zoom in, click the bar above the chart to zoom back out.</p>
+
+        <p><b>Pony Factor (TF).</b> The smallest number of authors whose combined work
+        covers more than half of a file or folder's code, counted from the biggest
+        contributor down. <b>TF&nbsp;=&nbsp;1</b> means one person wrote most of it — if
+        they leave the project, nobody else knows that code. It is the "bus factor"
+        idea applied per node, so <b>lower is riskier</b>, and red marks the code most
+        dependent on a single person.</p>
+
+        <p><b>Directory sizing.</b> <i>Faithful</i> makes area exactly proportional to
+        size, which is honest but leaves small files invisible next to huge ones.
+        <i>Compressed</i> flattens the differences logarithmically so small
+        subdirectories and files grow big enough to see and click — useful for
+        exploring, but areas are no longer literal.</p>
+    </div>
+
+    <div class="controls">
+        <span class="label">Repository:</span>
+        <select id="repo-select" aria-label="Repository" disabled>
+            <option value="">Loading&hellip;</option>
+        </select>
+        <span class="label">Directory sizing:</span>
+        <label><input type="radio" name="sizemode" value="linear" checked> Faithful (linear)</label>
+        <label><input type="radio" name="sizemode" value="log"> Compressed (log, per-level)</label>
+    </div>
+
+    <div class="search-wrap">
+        <input id="search" type="text" autocomplete="off" spellcheck="false"
+               placeholder="Search files &amp; folders&hellip; (Enter to go, Esc to close)">
+        <div id="search-results"></div>
+    </div>
+
+    <div id="treemap-container">
+        <div id="loading">Calculating Full Project Layout...</div>
+        <div id="breadcrumb" class="breadcrumb">
+            <span id="bc-text">Fetching data...</span>
+            <span style="font-size:12px">Click a folder to zoom in &middot; click breadcrumb to zoom out &uarr;</span>
+        </div>
+        <div id="chart"></div>
+    </div>
+
+    <div class="legend">
+        <span><i style="background:#ef4444"></i> TF &le; 1 (high risk)</span>
+        <span><i style="background:#eab308"></i> TF &le; 2</span>
+        <span><i style="background:#22c55e"></i> TF &le; 5</span>
+        <span><i style="background:#94a3b8"></i> TF &gt; 5 (low risk)</span>
+    </div>
+
+    <div id="tooltip"></div>
+
+    <script type="module" src="/static/knowledge-map/js/main.js"></script>
+</body>
+</html>

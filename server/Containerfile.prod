@@ -37,4 +37,4 @@ COPY --from=build --chown=1000:1000 /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
 # Command to run the Flask application using gunicorn
-CMD ["gunicorn", "--chdir",  "app", "app:app", "-w", "2", "--threads", "2", "-b", "0.0.0.0:5000"]
+CMD ["gunicorn", "app:app", "-w", "2", "--threads", "2", "-b", "0.0.0.0:5000"]

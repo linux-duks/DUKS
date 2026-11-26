@@ -1,0 +1,1 @@
+"""Kernel statistics dashboard module."""

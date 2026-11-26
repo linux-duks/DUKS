@@ -1,66 +1,39 @@
-from flask import Flask, request, jsonify, make_response
-from data_loader import load_data, load_tags
+"""Shared Flask application shell.
 
-import orjson
+This is the only piece of server infrastructure that knows about every module.
+Each module exposes its own blueprint (and resolves its own data folder via
+``data_dirs``); this file just wires them into one app and serves the static
+pages.
+"""
+
 import os
-import logging
 
-DEBUG = os.getenv("DEBUG", "false")
-level = logging.INFO
-if DEBUG != "false":
-    level = logging.DEBUG
+from flask import Flask
+
+from kernel.api import bp as kernel_bp
+from knowledge_map.api import bp as knowledge_map_bp
+
+# DEBUG is a string in the environment; treat anything but "false" as enabled.
+DEBUG = os.getenv("DEBUG", "false") != "false"
+# Loopback by default; containers opt in to the wildcard bind through HOST so
+# the published port can reach the app.
+HOST = os.getenv("HOST", "127.0.0.1")
+
+
+def _port_from_env():
+    """PORT as an int, failing loudly instead of silently using a default."""
+    raw = os.getenv("PORT", "5000")
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise ValueError(f"PORT must be an integer, got {raw!r}") from exc
+
+
+PORT = _port_from_env()
 
 app = Flask(__name__)
-
-
-def _build_cors_preflight_response():
-    response = make_response()
-    response.headers.add("Access-Control-Allow-Origin", "*")
-    response.headers.add("Access-Control-Allow-Headers", "*")
-    response.headers.add("Access-Control-Allow-Methods", "*")
-    return response
-
-
-@app.route("/api/commits", methods=["GET"])
-def get_commits():
-    """
-    Endpoint to serve the Git commit data.
-    """
-    if request.method == "OPTIONS":  # CORS preflight
-        return _build_cors_preflight_response()
-    elif request.method == "GET":
-        window_size = request.args.get("window_size", "1d")
-        if "d" not in window_size:
-            window_size = window_size + "d"
-
-        app.logger.info("GET commits with window: %s", window_size)
-
-        data = load_data(window_date_size=window_size)
-        response = jsonify(data.to_dict(as_series=False))
-        response.headers.add("Access-Control-Allow-Origin", "*")
-        return response
-    else:
-        raise RuntimeError(
-            "Couldn't address request with HTTP method {}".format(request.method)
-        )
-
-
-@app.route("/api/tags", methods=["GET"])
-def get_tags():
-    """
-    Endpoint to serve tag data.
-    """
-    if request.method == "OPTIONS":  # CORS preflight
-        return _build_cors_preflight_response()
-    elif request.method == "GET":
-        data = load_tags()
-        response = jsonify(data.to_dicts())
-        response.headers.add("Access-Control-Allow-Origin", "*")
-        return response
-    else:
-        raise RuntimeError(
-            "Couldn't address request with HTTP method {}".format(request.method)
-        )
+app.register_blueprint(kernel_bp)
+app.register_blueprint(knowledge_map_bp)
 
 
 @app.route("/")
@@ -73,27 +46,10 @@ def dashboard():
     return app.send_static_file("dashboard.html")
 
 
-class ORJSONDecoder:
-    def __init__(self, **kwargs):
-        # eventually take into consideration when deserializing
-        self.options = kwargs
-
-    def decode(self, obj):
-        return orjson.loads(obj)
-
-
-class ORJSONEncoder:
-    def __init__(self, **kwargs):
-        # eventually take into consideration when serializing
-        self.options = kwargs
-
-    def encode(self, obj):
-        # decode back to str, as orjson returns bytes
-        return orjson.dumps(obj).decode("utf-8")
+@app.route("/knowledge-map")
+def knowledge_map():
+    return app.send_static_file("knowledge-map/index.html")
 
 
 if __name__ == "__main__":
-    app.json_encoder = ORJSONEncoder
-    app.json_decoder = ORJSONDecoder
-    # Use 0.0.0.0 to make the server accessible from outside the container
-    app.run(host="0.0.0.0", port=5000, debug=DEBUG)
+    app.run(host=HOST, port=PORT, debug=DEBUG)

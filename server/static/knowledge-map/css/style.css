@@ -1,0 +1,137 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 0; padding: 20px;
+    background-color: #f8fafc;
+}
+/* Slim bar tying the page back into the rest of DUKS. Breaks out of the
+   body's 20px padding so it spans edge to edge, like the dashboard header. */
+.duks-nav {
+    display: flex; align-items: center; gap: 10px;
+    margin: -20px -20px 18px; padding: 12px 20px;
+    background: #fff; border-bottom: 1px solid #e2e8f0;
+    font-size: 14px; color: #475569;
+}
+.duks-nav a { color: #16a34a; text-decoration: none; }
+.duks-nav a:hover { text-decoration: underline; }
+.duks-brand { font-weight: 700; }
+.duks-sep { color: #cbd5e1; }
+.duks-current { color: #334155; font-weight: 600; }
+.duks-nav-spacer { flex: 1; }
+
+h1 { text-align: center; color: #1e293b; margin-bottom: 5px; }
+.subtitle { text-align: center; color: #64748b; margin-bottom: 16px; font-size: 14px; }
+.subtitle b { color: #475569; font-weight: 600; }
+
+/* The explainer is collapsed by default and its toggle sits inline in the
+   subtitle, so an unexpanded page costs no extra vertical space and the
+   treemap stays above the fold. */
+#intro-toggle {
+    margin-left: 6px; color: #16a34a; text-decoration: none;
+    font-size: 13px; white-space: nowrap;
+}
+#intro-toggle:hover { text-decoration: underline; }
+#intro-toggle::after { content: " \25be"; }
+#intro-toggle[aria-expanded="true"]::after { content: " \25b4"; }
+
+.intro {
+    max-width: 1600px; margin: -6px auto 16px; padding: 14px 20px;
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+    color: #475569; font-size: 13px; line-height: 1.55;
+}
+.intro p { margin: 0 0 9px; }
+.intro p:last-child { margin-bottom: 0; }
+.intro b { color: #1e293b; }
+.intro[hidden] { display: none; }
+
+#treemap-container {
+    width: 100%; max-width: 1600px; height: 860px;
+    margin: 0 auto;
+    background: white; border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    overflow: hidden; position: relative;
+}
+
+/* Breadcrumb header */
+.breadcrumb {
+    padding: 12px 20px;
+    background: #e2e8f0; color: #334155;
+    cursor: pointer; font-size: 14px;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.breadcrumb:hover { background: #cbd5e1; }
+
+/* SVG Nodes */
+.node { cursor: pointer; }
+.node rect { stroke: #ffffff; stroke-width: 1px; }
+.node.internal > rect { stroke-width: 1.5px; }
+.node text { pointer-events: none; }
+.name-label { font-size: 12px; font-weight: 600; fill: #0f172a; }
+.leaf-label { font-size: 11px; font-weight: 600; fill: #111; }
+.meta-label { font-size: 10px; fill: rgba(0,0,0,0.6); }
+
+#loading {
+    position: absolute; inset: 0; display: flex;
+    align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.9); font-size: 20px;
+    font-weight: bold; color: #16a34a; z-index: 10;
+    text-align: center; padding: 0 24px;
+}
+/* Same overlay, used to report a failed /api/tree load instead of spinning forever. */
+#loading.error { color: #b91c1c; font-size: 16px; }
+
+/* Controls */
+.controls {
+    display: flex; gap: 18px; justify-content: center; align-items: center;
+    margin: 0 auto 14px; font-size: 13px; color: #475569;
+}
+.controls .label { font-weight: 600; color: #334155; }
+.controls select {
+    padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 6px;
+    background: #fff; color: #0f172a; font-size: 13px;
+    font-family: inherit; cursor: pointer; max-width: 260px;
+}
+.controls select:focus { outline: none; border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.15); }
+.controls select:disabled { color: #94a3b8; cursor: progress; }
+.controls label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+.controls input { cursor: pointer; }
+
+/* Legend */
+.legend { display: flex; gap: 16px; justify-content: center; margin-top: 12px; font-size: 12px; color: #475569; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+/* Search */
+.search-wrap { position: relative; width: 440px; max-width: 92%; margin: 0 auto 14px; }
+#search {
+    width: 100%; box-sizing: border-box; padding: 8px 12px;
+    border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px; color: #0f172a;
+}
+#search:focus { outline: none; border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.15); }
+#search-results {
+    position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px;
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12); max-height: 320px; overflow-y: auto;
+    z-index: 40; display: none; text-align: left;
+}
+#search-results.open { display: block; }
+.sr-item { padding: 7px 12px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
+.sr-item:last-child { border-bottom: none; }
+.sr-item.active, .sr-item:hover { background: #f0fdf4; }
+.sr-name { font-size: 13px; font-weight: 600; color: #0f172a; }
+.sr-name .kind { font-weight: 400; color: #94a3b8; font-size: 11px; margin-left: 6px; }
+.sr-path { font-size: 11px; color: #64748b; word-break: break-all; }
+.sr-empty { padding: 10px 12px; color: #94a3b8; font-size: 13px; }
+
+/* Search highlight on the located tile */
+.node.hl > rect { stroke: #15803d; stroke-width: 3px; animation: hlpulse 0.9s ease-in-out 3; }
+@keyframes hlpulse { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: 0.3; } }
+
+/* Tooltip */
+#tooltip {
+    position: fixed; pointer-events: none; z-index: 50;
+    background: rgba(15,23,42,0.95); color: #f8fafc;
+    padding: 8px 10px; border-radius: 6px; font-size: 12px;
+    line-height: 1.4; max-width: 360px; opacity: 0;
+    transition: opacity 0.12s; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+#tooltip .tt-path { color: #94a3b8; word-break: break-all; }
