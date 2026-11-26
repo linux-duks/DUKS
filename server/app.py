@@ -47,6 +47,7 @@ def dashboard():
 
 
 @app.route("/knowledge-map")
+@app.route("/knowledge-map/")
 def knowledge_map():
     return app.send_static_file("knowledge-map/index.html")
 
