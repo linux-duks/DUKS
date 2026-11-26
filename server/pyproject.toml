@@ -1,13 +1,13 @@
 [project]
-name = "server"
-version = "0.1.0"
+name = "duks-server"
+version = "1.0.0"
 description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
-    "flask>=3.1.2",
-    "gunicorn>=23.0.0",
-    "orjson>=3.11.4",
-    "polars>=1.35.2",
+    "flask>=3.1.3",
+    "gunicorn>=27.0.1",
+    "orjson>=3.13.0",
+    "polars>=2.2.0",
 ]
 
 [dependency-groups]

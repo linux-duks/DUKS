@@ -19,7 +19,7 @@ def rolling_count_row_of_lists(
     expressions.
     """
     return (
-        series.flatten()
+        series.list.explode(keep_nulls=False, empty_as_null=False)
         .drop_nulls()
         .n_unique()
         .rolling(index_column=index_column, period=period)
