@@ -41,6 +41,71 @@
             }
         }
     </script>
+
+    <!-- 
+        Scroll hint: pulsating arrow pinned near the bottom of the viewport,
+        suggesting the user to scroll down for more content.
+    -->
+    <style>
+        /*
+            Hero fills exactly one viewport minus the navbar (4rem tall) so the
+            initial screen shows the whole hero without cutting it off.
+        */
+        .hero-fullheight {
+            min-height: calc(100vh - 4rem);
+        }
+
+        @supports (height: 100dvh) {
+            .hero-fullheight {
+                min-height: calc(100dvh - 4rem);
+            }
+        }
+
+        /*
+            The scroll hint is pinned to the viewport (not to the hero box), so
+            it is guaranteed to be visible on the initial screen regardless of
+            how tall the hero content grows on narrow/short devices.
+        */
+        .scroll-hint {
+            position: fixed;
+            left: 50%;
+            bottom: 1rem;
+            transform: translateX(-50%);
+            z-index: 40;
+            transition: opacity 0.3s ease, color 0.2s ease;
+        }
+
+        /* Hidden as soon as the user starts scrolling (see script at the end) */
+        .scroll-hint.is-hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        @keyframes scroll-hint-pulse {
+            0%   { transform: translateY(0);    opacity: 0.3; }
+            50%  { transform: translateY(12px); opacity: 1; }
+            100% { transform: translateY(0);    opacity: 0.3; }
+        }
+
+        .scroll-hint i {
+            animation: scroll-hint-pulse 1.8s ease-in-out infinite;
+        }
+
+        /* Respect users who prefer reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            .scroll-hint i {
+                animation: none;
+                opacity: 0.75;
+            }
+        }
+
+        /* Extreme short viewports: content already fills the screen */
+        @media (max-height: 480px) {
+            .scroll-hint {
+                display: none;
+            }
+        }
+    </style>
 </head>
 <body>
     <div id="app">
@@ -74,9 +139,9 @@
         <!-- 
             HERO SECTION: Highlighted main section
         -->
-        <div class="hero min-h-screen bg-gradient-to-br from-green-50 to-white">
+        <div class="hero hero-fullheight relative bg-gradient-to-br from-green-50 to-white">
             <div class="hero-content text-center">
-                <div class="max-w-4xl">
+                <div class="max-w-4xl pb-10 sm:pb-14">
                     <div class="text-6xl mb-6">🦆</div>
                     <h1 class="text-5xl font-bold mb-6 text-gray-800">DUKS</h1>
                     <h2 class="text-2xl font-semibold mb-8 text-green-600">
@@ -89,9 +154,9 @@
                     </p>
                     <!-- BUTTONS: Main call-to-action buttons -->
                     <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                        <a href="/dashboard" class="btn bg-green-600 hover:bg-green-700 text-white border-none btn-lg">
+                        <a href="#dashboards" class="btn bg-green-600 hover:bg-green-700 text-white border-none btn-lg">
                             <i class="fas fa-chart-line mr-2"></i>
-                            Explore Dashboard
+                            Explore Dashboards
                         </a>
                         <!-- Outline button with custom colors -->
                         <a href="#about" class="btn btn-outline border-green-600 text-green-600 hover:bg-green-600 hover:text-white btn-lg">
@@ -101,6 +166,13 @@
                     </div>
                 </div>
             </div>
+
+            <!-- SCROLL HINT: animated arrow pointing to the next section -->
+            <a href="#about"
+               aria-label="Scroll down to learn more about DUKS"
+               class="scroll-hint flex flex-col items-center text-green-600 hover:text-green-700">
+                <i class="fas fa-arrow-down text-2xl sm:text-3xl" aria-hidden="true"></i>
+            </a>
         </div>
 
         <!-- 
@@ -350,6 +422,16 @@
                         }
                     });
                 });
+
+                // Hide the scroll hint as soon as the user starts scrolling
+                const hint = document.querySelector('.scroll-hint');
+                if (hint) {
+                    const updateHint = () => {
+                        hint.classList.toggle('is-hidden', window.scrollY > 40);
+                    };
+                    updateHint();
+                    window.addEventListener('scroll', updateHint, { passive: true });
+                }
             }
         }).mount('#app'); // Mounts the Vue app on the element with id="app"
     </script>
