@@ -1,0 +1,19 @@
+{{- if and .Values.persistence.enabled (eq .Values.persistence.type "pvc") }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "duks.fullname" . }}-data
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "duks.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  {{- with .Values.persistence.pvc.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  accessModes:
+    - {{ .Values.persistence.pvc.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.pvc.size }}
+{{- end }}

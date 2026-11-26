@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "duks.fullname" . }}-nginx
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "duks.labels" . | nindent 4 }}
+    app.kubernetes.io/component: nginx
+data:
+  nginx.conf: |
+    {{- .Files.Get "files/nginx.conf" | replace "__API_UPSTREAM__" (printf "%s-api:%v" (include "duks.fullname" .) .Values.api.port) | nindent 4 }}

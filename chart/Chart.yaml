@@ -1,0 +1,7 @@
+apiVersion: v2
+name: duks
+description: Dashboard for Unified Kernel Statistics (API + nginx proxy)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.22.0-0"

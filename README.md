@@ -83,6 +83,42 @@ Must set the `GRAPH_GRPC_SERVER` and `INITIAL_NODE`, if non-default port or comm
 
 Run either `podman-compose -f dev-compose.yaml up` for development or `podman-compose up` for production build
 
+## Kubernetes (Helm)
+
+The production stack is also deployable to Kubernetes with the chart in
+[`chart/`](chart). It mirrors `compose.yaml`: an `api` Deployment (backend +
+the static frontend in the same image), an `nginx` Deployment that copies the
+static files out of the api image with an initContainer, and an optional
+generic `tunnel` sidecar as an alternative to an Ingress. See
+[`chart/README.md`](chart/README.md) for the full values reference.
+
+```bash
+make image-build IMAGE_REGISTRY=ghcr.io/linux-duks IMAGE_TAG=latest
+make image-push  IMAGE_REGISTRY=ghcr.io/linux-duks IMAGE_TAG=latest
+make chart-install NAMESPACE=duks
+make data-sync     NAMESPACE=duks   # copy ./data into the api pod's volume
+```
+
+The dataset is provided as a volume: a PVC created by the chart (default) or an
+existing NFS export (`persistence.type: nfs`). DUKS is exposed either through an
+Ingress (`ingress.enabled`) or through the tunnel sidecar (`tunnel.enabled`,
+where you supply the image, command/args and env vars — the chart stays provider
+agnostic); both are off by default.
+
+| Target | Description |
+|--------|-------------|
+| `make image-build` | Build the production image (`server/Containerfile.prod`) |
+| `make image-push` | Push it to `IMAGE_REGISTRY/IMAGE_NAME:IMAGE_TAG` |
+| `make image-publish` | Both of the above |
+| `make chart-lint` | `helm lint chart/` |
+| `make chart-template` | Render the chart locally |
+| `make chart-install` | `helm upgrade --install` into `NAMESPACE` |
+| `make chart-uninstall` | Remove the release |
+| `make chart-package` | Produce a `.tgz` of the chart |
+| `make data-sync` | Copy `./data` into the running api pod's volume |
+
+`make help` lists every target.
+
 ## Research
 
 Papers related to this software:

@@ -1,0 +1,116 @@
+# Default values for the DUKS chart.
+#
+# The chart mirrors the production compose stack (compose.yaml):
+#   api    -> Flask/gunicorn backend. The frontend static files are baked into
+#             the same image (server/static).
+#   nginx  -> reverse proxy + static file server for that same image. The static
+#             files are copied out of the api image by an initContainer into a
+#             shared emptyDir, so only ONE image has to be built and pushed.
+#   tunnel -> OPTIONAL generic sidecar that runs next to nginx (e.g.
+#             cloudflared). It is the alternative to exposing the release with
+#             an Ingress; the chart only wires image/command/env, never a
+#             provider-specific config.
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Names of pre-existing imagePullSecrets (kubernetes.io/dockerconfigjson) for
+# private registries. The chart does not create them.
+imagePullSecrets: []
+#  - name: ghcr-credentials
+
+serviceAccount:
+  create: true
+  # Defaults to the release fullname.
+  name: ""
+  annotations: {}
+
+api:
+  image:
+    # Build and push with `make image-build` / `make image-push`.
+    repository: ghcr.io/linux-duks/duks-server
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  port: 6000
+  # Container command. Empty => the compose default:
+  #   gunicorn app:app -w 4 --threads 4 -b 0.0.0.0:6000
+  command: []
+  args: []
+  resources: {}
+  podAnnotations: {}
+  # Probes hit "/" (the index page) on the api port.
+  probes:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 6
+
+nginx:
+  image:
+    repository: docker.io/nginx
+    tag: 1.31-alpine
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  resources: {}
+
+# Data volume (the repository's gitignored ./data folder: kernel/ and
+# knowledge_map/). Mounted into the api pod only.
+persistence:
+  # false => emptyDir (data disappears with the pod; useful for smoke tests).
+  enabled: true
+  # "pvc" creates and uses a PersistentVolumeClaim; "nfs" mounts an existing
+  # NFS export instead (no PVC is created).
+  type: pvc
+  mountPath: /data
+  pvc:
+    # Empty => the cluster default StorageClass.
+    storageClassName: ""
+    size: 10Gi
+    # ReadWriteOnce keeps the single api replica simple. Use ReadWriteMany
+    # only if your StorageClass supports a shared volume.
+    accessMode: ReadWriteOnce
+  nfs:
+    server: ""
+    path: ""
+
+ingress:
+  enabled: false
+  className: ""
+  # Required when ingress.enabled: true.
+  host: ""
+  annotations: {}
+  # e.g.
+  # tls:
+  #   - secretName: duks-tls
+  #     hosts:
+  #       - duks.example.tld
+  tls: []
+
+# Generic tunnel sidecar in the nginx pod. Enabling it is the alternative to
+# ingress.enabled: the tunnel reaches nginx on localhost:80 of the same pod.
+tunnel:
+  enabled: false
+  # Required when tunnel.enabled: true. The chart is provider agnostic.
+  image: ""
+  # Kubernetes semantics: `command` overrides the image ENTRYPOINT, `args` are
+  # the arguments handed to that entrypoint. The compose file's `command:`
+  # therefore maps to `args:` here. Set at least one of the two.
+  #
+  # cloudflared example (its ENTRYPOINT is `cloudflared`, so the subcommand
+  # belongs in args):
+  #   image: docker.io/cloudflare/cloudflared:latest
+  #   args: ["tunnel", "run"]            # -> cloudflared tunnel run
+  # Equivalent, if you prefer to override the entrypoint:
+  #   command: ["cloudflared", "tunnel", "run"]
+  # Do NOT write command: ["tunnel", "run"] -- kubelet would try to exec a
+  # binary called `tunnel` and fail with "executable file not found in $PATH".
+  command: []
+  args: []
+  # [{name: TUNNEL_TOKEN, value: "..."}] -- prefer envFrom with a Secret for
+  # anything sensitive.
+  env: []
+  # [{secretRef: {name: duks-tunnel}}] or [{configMapRef: {name: ...}}]
+  envFrom: []
+  resources: {}

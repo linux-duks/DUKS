@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "duks.fullname" . }}-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "duks.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  replicas: {{ .Values.api.replicaCount }}
+  strategy:
+    # The data volume is ReadWriteOnce by default: never run two api pods on
+    # the same claim at once.
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "duks.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        {{- include "duks.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: api
+      {{- with .Values.api.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "duks.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: api
+          image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+          {{- if .Values.api.command }}
+          command:
+            {{- toYaml .Values.api.command | nindent 12 }}
+          {{- else }}
+          # Same command as the prod compose service.
+          command:
+            - gunicorn
+            - app:app
+            - -w
+            - "4"
+            - --threads
+            - "4"
+            - -b
+            - "0.0.0.0:6000"
+          {{- end }}
+          {{- with .Values.api.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.api.port }}
+              protocol: TCP
+          env:
+            - name: DEBUG
+              value: "false"
+            # data_dirs.py resolves <DATA_DIR>/<module>, so the volume must be
+            # mounted at exactly this path.
+            - name: DATA_DIR
+              value: {{ .Values.persistence.mountPath | quote }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.persistence.mountPath }}
+          {{- if .Values.api.probes.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: {{ .Values.api.probes.initialDelaySeconds }}
+            periodSeconds: {{ .Values.api.probes.periodSeconds }}
+            timeoutSeconds: {{ .Values.api.probes.timeoutSeconds }}
+            failureThreshold: {{ .Values.api.probes.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: {{ .Values.api.probes.initialDelaySeconds }}
+            periodSeconds: {{ .Values.api.probes.periodSeconds }}
+            timeoutSeconds: {{ .Values.api.probes.timeoutSeconds }}
+            failureThreshold: {{ .Values.api.probes.failureThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+      volumes:
+        - name: data
+          {{- if not .Values.persistence.enabled }}
+          emptyDir: {}
+          {{- else if eq .Values.persistence.type "nfs" }}
+          nfs:
+            server: {{ required "persistence.nfs.server is required when persistence.type=nfs" .Values.persistence.nfs.server | quote }}
+            path: {{ required "persistence.nfs.path is required when persistence.type=nfs" .Values.persistence.nfs.path | quote }}
+            readOnly: false
+          {{- else }}
+          persistentVolumeClaim:
+            claimName: {{ include "duks.fullname" . }}-data
+          {{- end }}

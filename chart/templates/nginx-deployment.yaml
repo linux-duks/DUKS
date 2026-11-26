@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "duks.fullname" . }}-nginx
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "duks.labels" . | nindent 4 }}
+    app.kubernetes.io/component: nginx
+spec:
+  replicas: {{ .Values.nginx.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "duks.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: nginx
+  template:
+    metadata:
+      labels:
+        {{- include "duks.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: nginx
+    spec:
+      serviceAccountName: {{ include "duks.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        # The frontend lives in the api image (server/static). Copy it into the
+        # emptyDir nginx serves, so the chart needs no second image to build.
+        #
+        # `cp -R`, not `cp -a`: -a tries to restore ownership AND timestamps on
+        # the destination directory "." itself. The emptyDir root is owned by
+        # root while this container runs as the image's USER 1000, so utime()
+        # is denied and cp exits 1 -- which leaves the pod stuck in Init:Error.
+        # -R still preserves the file/directory modes nginx needs to read them.
+        - name: copy-static
+          image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+          command:
+            - sh
+            - -c
+            - cp -R /app/static/. /www/data/
+          volumeMounts:
+            - name: static
+              mountPath: /www/data
+      containers:
+        - name: nginx
+          image: "{{ .Values.nginx.image.repository }}:{{ .Values.nginx.image.tag }}"
+          imagePullPolicy: {{ .Values.nginx.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          volumeMounts:
+            - name: nginx-conf
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+            - name: static
+              mountPath: /www/data
+              readOnly: true
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.nginx.resources | nindent 12 }}
+        {{- if .Values.tunnel.enabled }}
+        {{- if and (not .Values.tunnel.command) (not .Values.tunnel.args) }}
+        {{- fail "tunnel.enabled=true requires tunnel.command (entrypoint override) or tunnel.args (arguments to the entrypoint), e.g. image=cloudflare/cloudflared with args=[\"tunnel\", \"run\"]" }}
+        {{- end }}
+        # Provider-agnostic tunnel (cloudflared, ngrok, tailscale, ...). It
+        # reaches nginx over localhost:80 of this same pod, replacing the
+        # Ingress as the exposure mechanism.
+        #
+        # Kubernetes semantics: `command` overrides the image ENTRYPOINT and
+        # `args` are the arguments given to it. cloudflared's ENTRYPOINT is
+        # `cloudflared`, so its subcommand belongs in args:
+        #   args: ["tunnel", "run"]   ->   cloudflared tunnel run
+        # (command: ["tunnel", "run"] would exec a binary named `tunnel`.)
+        - name: tunnel
+          image: {{ required "tunnel.enabled=true requires tunnel.image" .Values.tunnel.image }}
+          {{- with .Values.tunnel.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.tunnel.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.tunnel.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.tunnel.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.tunnel.resources | nindent 12 }}
+        {{- end }}
+      volumes:
+        - name: static
+          emptyDir: {}
+        - name: nginx-conf
+          configMap:
+            name: {{ include "duks.fullname" . }}-nginx
