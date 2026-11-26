@@ -6,11 +6,12 @@ maps HTTP requests onto them. The heavy commit calculation is served from the
 in-memory cache in :mod:`kernel.cache`.
 """
 
+import gzip
 import os
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, Response, current_app, jsonify, request
 
-from kernel.cache import get_commits_payload
+from kernel.cache import get_commits_gzip
 from kernel.data_loader import load_tags
 
 bp = Blueprint("kernel", __name__)
@@ -51,7 +52,16 @@ def get_commits():
 
     # Served from the in-memory cache: the rolling-window calculation runs at
     # most once per window size per process (warmed at startup by default).
-    return jsonify(get_commits_payload(window_size))
+    payload = get_commits_gzip(window_size)
+    use_gzip = request.accept_encodings.best_match(["gzip", "identity"]) == "gzip"
+    response = Response(
+        payload if use_gzip else gzip.decompress(payload),
+        mimetype="application/json",
+    )
+    response.headers["Vary"] = "Accept-Encoding"
+    if use_gzip:
+        response.headers["Content-Encoding"] = "gzip"
+    return response
 
 
 @bp.route("/api/tags", methods=["GET"])
