@@ -4,6 +4,7 @@ services:
   api:
     environment:
       - DEBUG=false
+      - DATA_DIR=/data
     build:
       context: server/
       dockerfile: Containerfile.prod
@@ -15,7 +16,7 @@ services:
     networks:
       - app_network
     restart: unless-stopped
-    command: gunicorn --chdir app app:app -w 4 --threads 4 -b "0.0.0.0:6000"
+    command: gunicorn app:app -w 4 --threads 4 -b "0.0.0.0:6000"
 
   nginx:
     image: docker.io/nginx:1.27-alpine

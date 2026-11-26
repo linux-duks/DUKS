@@ -20,15 +20,12 @@ import orjson
 import polars as pl
 from flask import Blueprint, Response, request
 
+from data_dirs import module_data_dir
+
 bp = Blueprint("knowledge_map", __name__)
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# The data volume is mounted at ../data (see compose files, matching
-# data_loader.py); the treemap CSVs live in a subfolder of it.
-DATA_DIR = os.environ.get(
-    "KNOWLEDGE_MAP_DATA_DIR",
-    os.path.abspath(os.path.join(BASE_DIR, "..", "data", "knowledge-map")),
-)
+# Each module owns a folder under the shared data root; see data_dirs.py.
+DATA_DIR = module_data_dir("knowledge_map")
 DEFAULT_REPO = "tokenFilesFull"
 
 # Not a repository: an ~860MB aggregate of every project, which would only

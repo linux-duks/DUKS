@@ -1,16 +1,23 @@
 import polars as pl
 
+from data_dirs import module_data_file
+
 
 def load_by_commits(window_date_size=None):
-    df = pl.read_parquet("../data/by_commit.parquet")
+    df = pl.read_parquet(module_data_file("kernel", "by_commit.parquet"))
 
     return df
 
 
 # short-hand for appliying the rolling_count
 def rolling_count_row_of_lists(
-    series: pl.Series, index_column: str, period: str
-) -> pl.Series:
+    series: pl.Expr, index_column: str, period: str
+) -> pl.Expr:
+    """Rolling count of the distinct values in a list column.
+
+    Called from ``with_columns``, so both the argument and the result are
+    expressions.
+    """
     return (
         series.flatten()
         .drop_nulls()
@@ -20,7 +27,7 @@ def rolling_count_row_of_lists(
 
 
 def load_data(window_date_size="1d"):
-    df = pl.read_parquet("../data/by_date.parquet").lazy()
+    df = pl.read_parquet(module_data_file("kernel", "by_date.parquet")).lazy()
 
     if window_date_size is None:
         window_date_size = "1d"
@@ -103,7 +110,7 @@ def load_data(window_date_size="1d"):
 # TODO: there are missing tags
 def load_tags():
     df = pl.read_csv(
-        "../data/tags.csv",
+        module_data_file("kernel", "tags.csv"),
         separator="|",
         infer_schema=False,  # try_parse_dates=True
     )
