@@ -128,8 +128,8 @@ generic `tunnel` sidecar as an alternative to an Ingress. See
 [`chart/README.md`](chart/README.md) for the full values reference.
 
 ```bash
-make image-build IMAGE_REGISTRY=ghcr.io/linux-duks IMAGE_TAG=latest
-make image-push  IMAGE_REGISTRY=ghcr.io/linux-duks IMAGE_TAG=latest
+make image-build REGISTRY=ghcr.io/linux-duks IMAGE_TAG=latest
+make image-push  REGISTRY=ghcr.io/linux-duks IMAGE_TAG=latest
 make chart-install NAMESPACE=duks
 make data-sync     NAMESPACE=duks   # copy ./data into the api pod's volume
 ```
@@ -143,7 +143,7 @@ agnostic); both are off by default.
 | Target | Description |
 |--------|-------------|
 | `make image-build` | Build the production image (`server/Containerfile.prod`) |
-| `make image-push` | Push it to `IMAGE_REGISTRY/IMAGE_NAME:IMAGE_TAG` |
+| `make image-push` | Push it to `REGISTRY/IMAGE_NAME:IMAGE_TAG` |
 | `make image-publish` | Both of the above |
 | `make chart-lint` | `helm lint chart/` |
 | `make chart-template` | Render the chart locally |

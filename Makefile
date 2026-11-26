@@ -4,11 +4,11 @@
 CONTAINER ?= $(shell command -v podman > /dev/null 2>&1 && echo podman || echo docker)
 
 # Image coordinates used by the image-* targets. Override on the command line:
-#   make image-push IMAGE_REGISTRY=registry.oci.internal IMAGE_TAG=v1.2.3
-IMAGE_REGISTRY ?= ghcr.io/linux-duks
+#   make image-push REGISTRY=registry.oci.internal IMAGE_TAG=v1.2.3
+REGISTRY ?= ghcr.io/linux-duks
 IMAGE_NAME ?= duks-server
 IMAGE_TAG ?= latest
-IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
+IMAGE ?= $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 
 # Containerfile of the production image (serves the Flask API and ships the
 # static frontend the nginx pod copies out of it).

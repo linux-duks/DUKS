@@ -14,8 +14,8 @@ The chart reproduces the production compose stack (`../compose.yaml`):
 
 ```bash
 # 1. build and push the API image (from the repository root)
-make image-build IMAGE_REGISTRY=ghcr.io/linux-duks IMAGE_TAG=latest
-make image-push  IMAGE_REGISTRY=ghcr.io/linux-duks IMAGE_TAG=latest
+make image-build REGISTRY=ghcr.io/linux-duks IMAGE_TAG=latest
+make image-push  REGISTRY=ghcr.io/linux-duks IMAGE_TAG=latest
 
 # 2. install
 make chart-install NAMESPACE=duks RELEASE=duks
