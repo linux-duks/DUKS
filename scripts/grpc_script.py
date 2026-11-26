@@ -79,7 +79,7 @@ class UniqueDeque:
         return f"UniqueDeque({list(self._deque)})"
 
 
-def extract_attributions(commit_message) -> (list[dict], list[str]):
+def extract_attributions(commit_message) -> list[dict]:
     """
     Parses a git commit message and extracts all personal attributions.
 
@@ -145,7 +145,7 @@ def extract_attributions(commit_message) -> (list[dict], list[str]):
 
 # there are messages with non utf8 encoding
 # this will try to decode them in utf8, cp1252 utf8 with replace (? char), or ignore with empty string
-def decode_message(swhid: str, input_message: str) -> str:
+def decode_message(swhid: str, input_message: bytes) -> str:
     message = ""
     try:
         message = input_message.decode("utf-8")
@@ -170,7 +170,7 @@ def decode_message(swhid: str, input_message: str) -> str:
     return message
 
 
-def write_commit(writer: csv.writer, current_node_response, tag_map):
+def write_commit(writer, current_node_response, tag_map):
     attributions = extract_attributions(
         decode_message(current_node_response.swhid, current_node_response.rev.message)
     )
@@ -201,7 +201,17 @@ def write_commit(writer: csv.writer, current_node_response, tag_map):
 
 
 def main():
-    file = open("./data/commits.csv", "w", newline="", buffering=1, encoding="utf-8")
+    # Kernel exports live in their own module folder under the shared data root
+    # (see server/data_dirs.py); create it on a fresh checkout.
+    try:
+        os.makedirs("./data/kernel", exist_ok=True)
+        # pi-lens-ignore: SIM115 -- closed at the end of the BFS traversal.
+        file = open(
+            "./data/kernel/commits.csv", "w", newline="", buffering=1, encoding="utf-8"
+        )
+    except OSError as exc:
+        logging.error("cannot write ./data/kernel/commits.csv: %s", exc)
+        return
     writer = csv.writer(file, delimiter="|", quoting=csv.QUOTE_ALL, lineterminator="\n")
     writer.writerow(
         [
@@ -257,6 +267,10 @@ def main():
                 suucc_timestamp = succ.label[0].visit_timestamp
                 if suucc_timestamp > visit_timestamp:
                     last_snapshot = succ
+        if last_snapshot is None:
+            logging.error("no snapshot found for origin %s", KERNEL_TREE)
+            file.close()
+            return
         last_snapshot = stub.GetNode(
             swhgraph.GetNodeRequest(
                 swhid=last_snapshot.swhid,
@@ -264,7 +278,7 @@ def main():
         )
         rev_rel_map = {}
 
-        logging.info("Lokking for starting commit and building release map")
+        logging.info("Looking for starting commit and building release map")
 
         for succ in last_snapshot.successor:
             # if succ.swhid.startswith("swh:1:rev"):

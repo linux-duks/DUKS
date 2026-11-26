@@ -18,15 +18,15 @@ logging.basicConfig(
 
 
 # reads a list of dicts, and returns a list of unique emails
-def unique_emails_in_attributions(attributions: list[str]) -> int | None:
-    attributions = orjson.loads(attributions)
-    if not attributions or len(attributions) == 0:
+def unique_emails_in_attributions(attributions: str) -> list[str] | None:
+    parsed = orjson.loads(attributions)
+    if not parsed:
         return None
-    return list(set([attr["email"] for attr in attributions]))
+    return list({attr["email"] for attr in parsed})
 
 
 # take a list of stringified json list[dicts], parses, and joins them into a single list
-def merge_aggregated_attributions(attributions_list: list[str]) -> str | None:
+def merge_aggregated_attributions(attributions_list: pl.Series) -> str | None:
     merged = []
     if not attributions_list.is_empty():
         for attributions in attributions_list:
@@ -62,17 +62,16 @@ def run():
 
     print(maintainers.head())
 
-    logging.info("Runningn query in duckdb")
-    df = (
-        duckdb.sql("""
+    logging.info("Running query in duckdb")
+    relation = duckdb.sql("""
         SELECT c.*, m.maintainers as maintainers , len(m.maintainers) as declared_maintainers FROM commits c
         left join maintainers m on
         c.commit == m.commit 
         order by committer_date
     """)
-        .pl()
-        .lazy()
-    )
+    if relation is None:
+        raise RuntimeError("duckdb did not return a relation for the join query")
+    df = relation.pl().lazy()
 
     # all commits before a change have the same declared contributors
     df = df.with_columns(
@@ -114,7 +113,7 @@ def run():
     #     pl.col("all_contributors").list.len().alias("num_total_contributors"),
     # )
 
-    def intersect(row: pl.Struct):
+    def intersect(row: dict):
         mset = set(row["maintainers"])
         author = None
         committer = None
@@ -156,7 +155,7 @@ def run():
         .alias("intersect")
     ).unnest("intersect")
 
-    def parse_known_tags_from_attributions(row: pl.List(pl.Struct)) -> pl.Struct:
+    def parse_known_tags_from_attributions(row: list[dict]) -> dict:
         ack = set()
         reviewed = set()  # Reveiwed, reviwed
         reported = set()

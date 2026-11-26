@@ -4,9 +4,9 @@ import csv
 import orjson
 import os
 import re
-from datetime import timedelta, datetime
+from datetime import datetime
 
-from pygit2 import Repository
+from pygit2 import Commit, Repository
 
 kernel_path = os.getenv("KERNEL_PATH", ".")
 
@@ -38,7 +38,7 @@ def fix_attributions(attributions, author, committer):
     return orjson.dumps(new_attrs_block).decode()
 
 
-def read_tags(repo: Repository) -> list[[str]]:
+def read_tags(repo: Repository) -> list[list[str | datetime | None]]:
     tags_result = subprocess.run(
         ["git", "show-ref", "--tags", "-d"],
         cwd=repo.workdir,
@@ -47,7 +47,7 @@ def read_tags(repo: Repository) -> list[[str]]:
     )
     if tags_result.returncode != 0:
         logging.error(tags_result.stderr)
-        return
+        return []
     tags = tags_result.stdout.strip().split("\n")
     tags.reverse()
     tag_list = []
@@ -66,13 +66,13 @@ def read_tags(repo: Repository) -> list[[str]]:
                 try:
                     commit = repo.get(sha)
                     commit_time = None
-                    try:
+                    # Lightweight tags point straight at the commit; annotated
+                    # ones are peeled by `git show-ref -d`, so anything that is
+                    # not a commit here is a git oddity worth skipping.
+                    if isinstance(commit, Commit):
                         commit_time = datetime.fromtimestamp(commit.commit_time)
-                        (+timedelta(minutes=commit.commit_time_offset),)
-                    except Exception as e:
-                        logging.info(
-                            f"{sha} git object is probably not a commit: %s", e
-                        )
+                    else:
+                        logging.info("%s git object is probably not a commit", sha)
                     tag_version = match.group(1)
                     tag_list.append(
                         [
@@ -88,8 +88,15 @@ def read_tags(repo: Repository) -> list[[str]]:
     return tag_list
 
 
-def write_tags_file(tags: list[[str]]):
-    tags_file = open("./data/tags.csv", "w", newline="", buffering=1, encoding="utf-8")
+def write_tags_file(tags: list[list[str | datetime | None]]):
+    try:
+        # pi-lens-ignore: SIM115 -- the handle is closed once every tag is written.
+        tags_file = open(
+            "./data/kernel/tags.csv", "w", newline="", buffering=1, encoding="utf-8"
+        )
+    except OSError as exc:
+        logging.error("cannot write ./data/kernel/tags.csv: %s", exc)
+        return
     tags_writer = csv.writer(
         tags_file, delimiter="|", quoting=csv.QUOTE_ALL, lineterminator="\n"
     )
@@ -107,10 +114,18 @@ def run(kernel_path: str):
     repo = Repository(kernel_path)
     repo.get(INITIAL_COMMIT)
 
-    commits_file = open("./data/commits.csv", "r")
+    try:
+        # pi-lens-ignore: SIM115 -- both handles stay open for the whole export loop.
+        commits_file = open("./data/kernel/commits.csv")
+        # pi-lens-ignore: SIM115
+        file = open(
+            "./data/kernel/enhanced.csv", "w", newline="", buffering=1, encoding="utf-8"
+        )
+    except OSError as exc:
+        # commits.csv is produced by grpc_script.py; enhanced.csv is our output.
+        logging.error("cannot open the kernel export files: %s", exc)
+        return
     reader = csv.DictReader(commits_file, delimiter="|")
-
-    file = open("./data/enhanced.csv", "w", newline="", buffering=1, encoding="utf-8")
     writer = csv.writer(file, delimiter="|", quoting=csv.QUOTE_ALL, lineterminator="\n")
     writer.writerow(
         [
@@ -126,6 +141,7 @@ def run(kernel_path: str):
         ]
     )
 
+    tag_map = {}
     if LOAD_TAGS_FROM_REPO:
         # read all tags from repo
         tags = read_tags(repo)
@@ -137,7 +153,7 @@ def run(kernel_path: str):
 
     for row in reader:
         commit = repo.get(row["commit"])
-        if commit is not None:
+        if isinstance(commit, Commit):
             parents = commit.parents
 
             # merge commits default to 0 (should be accounted by the commits themselves)

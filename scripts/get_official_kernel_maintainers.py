@@ -20,20 +20,20 @@ logging.basicConfig(
 
 
 def read_maintainers_file_commits(repo: Repository) -> list[str]:
-    git_hystory_result = subprocess.run(
+    git_history_result = subprocess.run(
         ["git", "--no-pager", "log", "--follow", '--pretty=format:"%H"', "MAINTAINERS"],
         cwd=repo.workdir,
         capture_output=True,
         text=True,
     )
-    if git_hystory_result.returncode != 0:
-        logging.error(git_hystory_result.stderr)
-        return
-    commits = git_hystory_result.stdout.strip().split("\n")
+    if git_history_result.returncode != 0:
+        logging.error(git_history_result.stderr)
+        return []
+    commits = git_history_result.stdout.strip().split("\n")
     return commits
 
 
-def checkout_and_read_file(repo: Repository, sha: str) -> list[str]:
+def checkout_and_read_file(repo: Repository, sha: str) -> str | None:
     checkout = subprocess.run(
         ["git", "checkout", sha],
         cwd=repo.workdir,
@@ -43,7 +43,7 @@ def checkout_and_read_file(repo: Repository, sha: str) -> list[str]:
 
     if checkout.returncode != 0:
         logging.error(checkout.stderr)
-        return
+        return None
 
     maintain_emails = subprocess.run(
         ["awk", "/^M:|^R:/{print $NF}", "MAINTAINERS"],
@@ -53,7 +53,7 @@ def checkout_and_read_file(repo: Repository, sha: str) -> list[str]:
     )
     if maintain_emails.returncode != 0:
         logging.error(maintain_emails.stderr)
-        return
+        return None
     emails = (
         maintain_emails.stdout.strip().replace("<", "").replace(">", "").split("\n")
     )
@@ -61,9 +61,20 @@ def checkout_and_read_file(repo: Repository, sha: str) -> list[str]:
 
 
 def run(kernel_path: str):
-    tags_file = open(
-        "./data/maintainers.csv", "w", newline="", buffering=1, encoding="utf-8"
-    )
+    # Kernel exports live in their own module folder under the shared data root
+    # (see server/data_dirs.py); create it on a fresh checkout.
+    try:
+        os.makedirs("./data/kernel", exist_ok=True)
+        tags_file = open(
+            "./data/kernel/maintainers.csv",
+            "w",
+            newline="",
+            buffering=1,
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        logging.error("cannot write ./data/kernel/maintainers.csv: %s", exc)
+        return
     tags_writer = csv.writer(
         tags_file, delimiter="|", quoting=csv.QUOTE_ALL, lineterminator="\n"
     )
