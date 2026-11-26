@@ -19,7 +19,7 @@ services:
     command: gunicorn app:app -w 4 --threads 4 -b "0.0.0.0:6000"
 
   nginx:
-    image: docker.io/nginx:1.27-alpine
+    image: docker.io/nginx:1.31-alpine
     ports:
       - "18000:80"
     volumes:
